@@ -1,6 +1,6 @@
 #include "admin.hpp"
 
-void Admin(crow::SimpleApp& app, MYSQL& sql)
+void devi::Admin(crow::SimpleApp& app, MYSQL& sql)
 {
     CROW_ROUTE(app, "/admin/addNewCompany")
     .methods(crow::HTTPMethod::POST)
@@ -39,8 +39,15 @@ void Admin(crow::SimpleApp& app, MYSQL& sql)
         command.str(std::string());
         command << "CREATE DATABASE db_" << name << " DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;";
 
-        if(mysql_query(&sql, command.str().c_str()) == 0) return crow::response(crow::OK);
-        else return crow::response(crow::CONFLICT);
+        if(mysql_query(&sql, command.str().c_str()))
+            return crow::response(crow::CONFLICT);
+
+        command.str(std::string());
+        command << "INSERT INTO `companies` VALUES(NULL,'" << name << "', '" << email << "')";
+
+        if(mysql_query(&sql, command.str().c_str()))
+            return crow::response(crow::CONFLICT);
+        return crow::response(crow::OK);
         
     });
 }
