@@ -3,19 +3,14 @@
 #include <iostream>
 
 #include "admin/admin.hpp"
+#include "tools/sql.hpp"
 #include "settings.h"
 
 int main()
 {
     MYSQL sql;
 
-    mysql_init(&sql);
-
-    if(!mysql_real_connect(&sql, SQL_HOST, SQL_USER, SQL_PASS, SQL_NAME, SQL_PORT, NULL, 0))
-    {
-        printf("Błąd połączenia z bazą MySQL: %d, %s\n", mysql_errno(&sql), mysql_error(&sql));
-        return -1;
-    }
+    if(!devi::sql_start(&sql)) return -1;
 
     crow::SimpleApp app;
 

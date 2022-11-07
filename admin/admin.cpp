@@ -1,6 +1,6 @@
 #include "admin.hpp"
 
-void Admin(crow::SimpleApp& app, MYSQL& sql)
+void devi::Admin(crow::SimpleApp& app, MYSQL& sql)
 {
     CROW_ROUTE(app, "/admin/addNewCompany")
     .methods(crow::HTTPMethod::POST)
@@ -9,13 +9,15 @@ void Admin(crow::SimpleApp& app, MYSQL& sql)
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "Invalid body");
 
-        std::string name, email, key;
+        std::string name, email, key, user, pass;
 
         try
         {
             name    = body["name"].s();
             email   = body["email"].s();
             key     = body["key"].s();
+            user    = body["user"].s();
+            pass    = body["pass"].s();
         }
         catch(const std::runtime_error& e)
         {
@@ -39,8 +41,22 @@ void Admin(crow::SimpleApp& app, MYSQL& sql)
         command.str(std::string());
         command << "CREATE DATABASE db_" << name << " DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;";
 
-        if(mysql_query(&sql, command.str().c_str()) == 0) return crow::response(crow::OK);
-        else return crow::response(crow::CONFLICT);
+        if(mysql_query(&sql, command.str().c_str()) != 0) 
+            return crow::response(crow::CONFLICT);
         
+        command.str(std::string());
+        command << "CREATE USER '" << name << "_" << user << "'@'localhost' IDENTIFIED BY '" << pass << "';";
+
+        if(mysql_query(&sql, command.str().c_str()) != 0) 
+            return crow::response(crow::CONFLICT);
+
+        // ! Change DB
+        command.str(std::string());
+        command << "CREATE TABLE system_users(ID INT NOT NULL AUTO_INCREMENT, name TEXT NOT NULL, pass TEXT NOT NULL, PRIMARY KEY(ID))";;
+
+        if(mysql_query(&sql, command.str().c_str()) != 0) 
+            return crow::response(crow::CONFLICT);
+
+        return crow::response(crow::OK);
     });
 }
