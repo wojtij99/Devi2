@@ -15,12 +15,17 @@ bool devi::sql_start(MYSQL* sql, std::string db_name, std::string user, std::str
     return true;
 }
 
-bool devi::exec_NOquery(MYSQL* sql,std::initializer_list<std::string> _commnd)
+bool devi::exec_NOquery(MYSQL* sql,std::initializer_list<std::string> _commnd, bool closeFlag)
 {
     std::string command;
     for (std::string part : _commnd)
         command += part;
 
-    if(mysql_query(sql, command.c_str()) != 0) return false;
+    if(mysql_query(sql, command.c_str()) != 0) 
+    {
+        if(closeFlag)
+            mysql_close(sql);
+        return false;
+    }
     return true;
 }

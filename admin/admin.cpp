@@ -49,54 +49,23 @@ void devi::Admin(crow::SimpleApp& app)
             return crow::response(crow::BAD_REQUEST, "Invalid email");
         }
 
-        command.str(std::string());
-        command << "CREATE DATABASE db_" << name << " DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;";
-
-        if(mysql_query(&sql, command.str().c_str()))
-        {
-            mysql_close(&sql);
+        if(!exec_NOquery(&sql, {"CREATE DATABASE db_", name ," DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;"}))
             return crow::response(crow::CONFLICT, "Can't create DB");
-        }
 
-        command.str(std::string());
-        command << "INSERT INTO `companies` VALUES(NULL,'" << name << "', '" << email << "')";
-
-        if(mysql_query(&sql, command.str().c_str()))
-        {
-            mysql_close(&sql);
+        if(!exec_NOquery(&sql, {"INSERT INTO `companies` VALUES(NULL,'", name, "', '", email, "')"}))
             return crow::response(crow::CONFLICT, "Can't add Db to register: ");
-        }
-        
-        command.str(std::string());
-        command << "CREATE USER '" << name << "_" << user << "'@'localhost' IDENTIFIED BY '" << pass << "';";
 
-        if(mysql_query(&sql, command.str().c_str()) != 0) 
-        {
-            mysql_close(&sql);
+        if(!exec_NOquery(&sql, {"CREATE USER '", name, "_", user,"'@'localhost' IDENTIFIED BY '", pass, "';"})) 
             return crow::response(crow::CONFLICT, "Can't create user");
-        }
 
         mysql_close(&sql);
         if(!devi::sql_start(&sql, "db_" + name)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
-        command.str(std::string());
-        command << "CREATE TABLE system_users(ID INT NOT NULL AUTO_INCREMENT, name TEXT NOT NULL, pass TEXT NOT NULL, PRIMARY KEY(ID));";
 
-        if(mysql_query(&sql, command.str().c_str()) != 0) 
-        {
-            mysql_close(&sql);
+        if(!exec_NOquery(&sql, {"CREATE TABLE system_users(ID INT NOT NULL AUTO_INCREMENT, name TEXT NOT NULL, pass TEXT NOT NULL, PRIMARY KEY(ID));"})) 
             return crow::response(crow::CONFLICT, "Can't init DB");
-        }
 
-        command.str(std::string());
-        command << "INSERT INTO system_users VALUES(NULL, '" << user << "', '" << pass << "');";
-
-        if(mysql_query(&sql, command.str().c_str()) != 0) 
-        {
-            mysql_close(&sql);
+        if(!exec_NOquery(&sql, {"INSERT INTO system_users VALUES(NULL, '", user, "', '", pass, "');"})) 
             return crow::response(crow::CONFLICT, "Can't insert user to DB");
-        }
-
-        //!GRANT TABLE FOR USER
 
         mysql_close(&sql);
         return crow::response(crow::OK);
