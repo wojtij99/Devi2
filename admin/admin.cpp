@@ -1,6 +1,8 @@
 #include "admin.hpp"
+#include "../tools/sql.hpp"
+#include <mysql/mysql.h>
 
-void devi::Admin(crow::SimpleApp& app, MYSQL& sql)
+void devi::Admin(crow::SimpleApp& app)
 {
     CROW_ROUTE(app, "/admin/addNewCompany")
     .methods(crow::HTTPMethod::POST)
@@ -24,6 +26,9 @@ void devi::Admin(crow::SimpleApp& app, MYSQL& sql)
             return crow::response(crow::BAD_REQUEST, "Invalid body");
         }
 
+        MYSQL sql;
+        if(!devi::sql_start(&sql)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
+
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
         std::stringstream command;
@@ -33,37 +38,67 @@ void devi::Admin(crow::SimpleApp& app, MYSQL& sql)
         sql_response = mysql_store_result(&sql);
 
         if ((sql_row = mysql_fetch_row(sql_response)) == NULL)
+        {
+            mysql_close(&sql);
             return crow::response(crow::UNAUTHORIZED, "Invalid key");
+        }
 
         if(email.find("@") == std::string::npos || email.substr(email.find("@")).find(".") == std::string::npos)
+        {
+            mysql_close(&sql);
             return crow::response(crow::BAD_REQUEST, "Invalid email");
+        }
 
         command.str(std::string());
         command << "CREATE DATABASE db_" << name << " DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;";
 
         if(mysql_query(&sql, command.str().c_str()))
-            return crow::response(crow::CONFLICT);
+        {
+            mysql_close(&sql);
+            return crow::response(crow::CONFLICT, "Can't create DB");
+        }
 
         command.str(std::string());
         command << "INSERT INTO `companies` VALUES(NULL,'" << name << "', '" << email << "')";
 
         if(mysql_query(&sql, command.str().c_str()))
-            return crow::response(crow::CONFLICT);
-        return crow::response(crow::OK);
+        {
+            mysql_close(&sql);
+            return crow::response(crow::CONFLICT, "Can't add Db to register: ");
+        }
         
         command.str(std::string());
         command << "CREATE USER '" << name << "_" << user << "'@'localhost' IDENTIFIED BY '" << pass << "';";
 
         if(mysql_query(&sql, command.str().c_str()) != 0) 
-            return crow::response(crow::CONFLICT);
+        {
+            mysql_close(&sql);
+            return crow::response(crow::CONFLICT, "Can't create user");
+        }
 
-        // ! Change DB
+        mysql_close(&sql);
+        if(!devi::sql_start(&sql, "db_" + name)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
         command.str(std::string());
-        command << "CREATE TABLE system_users(ID INT NOT NULL AUTO_INCREMENT, name TEXT NOT NULL, pass TEXT NOT NULL, PRIMARY KEY(ID))";;
+        command << "CREATE TABLE system_users(ID INT NOT NULL AUTO_INCREMENT, name TEXT NOT NULL, pass TEXT NOT NULL, PRIMARY KEY(ID));";
 
         if(mysql_query(&sql, command.str().c_str()) != 0) 
-            return crow::response(crow::CONFLICT);
+        {
+            mysql_close(&sql);
+            return crow::response(crow::CONFLICT, "Can't init DB");
+        }
 
+        command.str(std::string());
+        command << "INSERT INTO system_users VALUES(NULL, '" << user << "', '" << pass << "');";
+
+        if(mysql_query(&sql, command.str().c_str()) != 0) 
+        {
+            mysql_close(&sql);
+            return crow::response(crow::CONFLICT, "Can't insert user to DB");
+        }
+
+        //!GRANT TABLE FOR USER
+
+        mysql_close(&sql);
         return crow::response(crow::OK);
     });
 }

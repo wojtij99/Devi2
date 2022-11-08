@@ -11,6 +11,7 @@ int main()
     MYSQL sql;
 
     if(!devi::sql_start(&sql)) return -1;
+    mysql_close(&sql);
 
     crow::SimpleApp app;
 
@@ -26,9 +27,8 @@ int main()
         return  result.str();
     });
 
-    devi::Admin(app, sql);
+    devi::Admin(app);
     
     app.port(API_PORT).multithreaded().run();
-    mysql_close(&sql);
     return 0;
 }
