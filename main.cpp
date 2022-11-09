@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "admin/admin.hpp"
+#include "client/client.hpp"
 #include "tools/sql.hpp"
 #include "settings.h"
 
@@ -28,6 +29,7 @@ int main()
     });
 
     devi::Admin(app);
+    devi::Client(app);
     
     app.port(API_PORT).multithreaded().run();
     return 0;

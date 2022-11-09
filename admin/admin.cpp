@@ -49,6 +49,8 @@ void devi::Admin(crow::SimpleApp& app)
             return crow::response(crow::BAD_REQUEST, "Invalid email");
         }
 
+        //!transaction
+
         if(!exec_NOquery(&sql, {"CREATE DATABASE db_", name ," DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;"}))
             return crow::response(crow::CONFLICT, "Can't create DB");
 
