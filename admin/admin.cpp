@@ -49,16 +49,13 @@ void devi::Admin(crow::SimpleApp& app)
             return crow::response(crow::BAD_REQUEST, "Invalid email");
         }
 
-        //!transaction
+        mysql_query(&sql, "START TRANSACTION;");
 
         if(!exec_NOquery(&sql, {"CREATE DATABASE db_", name ," DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;"}))
             return crow::response(crow::CONFLICT, "Can't create DB");
 
         if(!exec_NOquery(&sql, {"INSERT INTO `companies` VALUES(NULL,'", name, "', '", email, "')"}))
-            return crow::response(crow::CONFLICT, "Can't add Db to register: ");
-
-        if(!exec_NOquery(&sql, {"CREATE USER '", name, "_", user,"'@'localhost' IDENTIFIED BY '", pass, "';"})) 
-            return crow::response(crow::CONFLICT, "Can't create user");
+            return crow::response(crow::CONFLICT, "Can't add Db to register");
 
         mysql_close(&sql);
         if(!devi::sql_start(&sql, "db_" + name)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
@@ -69,6 +66,7 @@ void devi::Admin(crow::SimpleApp& app)
         if(!exec_NOquery(&sql, {"INSERT INTO system_users VALUES(NULL, '", user, "', '", pass, "');"})) 
             return crow::response(crow::CONFLICT, "Can't insert user to DB");
 
+        mysql_query(&sql, "COMMIT;");
         mysql_close(&sql);
         return crow::response(crow::OK);
     });

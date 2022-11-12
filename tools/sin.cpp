@@ -1,153 +1,223 @@
 #include "sin.hpp"
+//#include <boost/format.hpp>
+#include <mysql/mysql.h>
+#include "../tools/sql.hpp"
+
+const std::string currentDateTime() 
+{
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+
+    return buf;
+}
+
+std::vector<std::string> split(std::string _string, char _delimiter)
+{
+    std::vector<std::string> result;
+    std::string temp = "";
+
+    for(char c : _string)
+    {
+        if(c == _delimiter)
+        {
+            result.push_back(temp);
+            temp = "";
+            continue;
+        }
+        temp += c;
+    }
+    result.push_back(temp);
+
+    return result;
+}
+
+devi::dateTime_t convertDTstr2t(std::string _string)
+{
+    std::vector<std::string> temp = split(_string, '.');
+    std::vector<std::string> date = split(temp[0], '-');
+    std::vector<std::string> time = split(temp[1], ':');
+
+    devi::dateTime_t result =
+    {
+        std::stoi(date[0]),
+        std::stoi(date[1]),
+        std::stoi(date[2]),
+        std::stoi(time[0]),
+        std::stoi(time[1]),
+        std::stoi(time[2])
+    };
+    return result;
+}
+
+std::string generateSIN()
+{
+    std::string result = "";
+    srand(time(NULL));
+    std::string codes = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    for (int i = 0; i < 256; i++)
+        result += codes[rand() % codes.length()];
+    return result;
+}
+
+void devi::SIN(crow::SimpleApp& app)
+{
+    CROW_ROUTE(app, "/getSIN")
+    .methods(crow::HTTPMethod::GET)
+    ([](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if(!body) 
+            return crow::response(crow::BAD_REQUEST, "Invalid body");
+
+        std::string user, pass, db, user_agent, host;
+
+        try
+        {
+            user    = body["user"].s();
+            pass    = body["pass"].s();
+            db      = body["db"].s();
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "Invalid body");
+        }
+
+        for(auto _s : SINs)
+        {
+            if(_s.second.user == user && _s.second.db == db)
+            {
+                if(abs(_s.second.expiredate.hour - convertDTstr2t(currentDateTime()).hour) > 1)
+                {
+                    SINs.erase(SINs.find(_s.first));
+                    return crow::response(crow::GONE, "Your SIN is expired");
+                }
+                return crow::response(crow::CONFLICT, "You already have your SIN");
+            }
+        }
+
+        try
+        {
+            user_agent = req.get_header_value("User-Agent");
+            host = req.get_header_value("Host");
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "Invalid header");
+        }
+
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB ");
+
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
+        std::stringstream command;
+        command << "SELECT id FROM `system_users` WHERE `name` = '" << user << "' AND `pass` = '" << pass << "' ;";
+
+        std::cout << command.str() << std::endl;
+        mysql_query(&sql, command.str().c_str());
+        sql_response = mysql_store_result(&sql);
+
+        if ((sql_row = mysql_fetch_row(sql_response)) == NULL)
+        {
+            mysql_close(&sql);
+            return crow::response(crow::UNAUTHORIZED, "Invalid user or password");
+        }
+
+        std::string sin;
+        do
+        {
+            sin = generateSIN();
+        } while (SINs.find(sin) != SINs.end());
+        
+
+        dateTime_t dt = convertDTstr2t( currentDateTime());
+        dt.hour++;
+        sin_t sin_struct = {host, user_agent, user, db, convertDTstr2t( currentDateTime()), dt};
+
+        SINs[sin] = sin_struct;
+
+        std::cout << host << std::endl;
+        return crow::response(crow::OK, sin);
+    }); 
+}
+
+bool devi::checkSIN(std::string _sin, const crow::request& req)
+{
+    if(SINs.find(_sin) == SINs.end()) return false;
+
+    std::string user_agent, host;
+    try
+    {
+        user_agent = req.get_header_value("User-Agent");
+        host = req.get_header_value("Host");
+    }
+    catch(const std::runtime_error& e)
+    {
+        return false;
+    }
+
+    if(SINs[_sin].ip != host || SINs[_sin].user_agent != user_agent) return false;
+
+    return true;
+}
 
 /*
-struct Lic
+std::string devi::encrypt(std::string ip, std::string user_agent, std::string user, std::string db)
 {
-    public string code;
-    public string name;
-    public string adress;
-    public string zipCode;
-    public string NIP;
+    std::string stage0 = ip + "|" + user_agent + "|" + user + "|" + db + "|" + currentDateTime();
+    
+    std::string stage1 = "";
+
+    for(char c : stage0)
+    {
+        std::string temp = (boost::format("%x") % (int)c).str();
+        //if(temp.length() == 2) 
+            ///temp = "00" + temp;
+        stage1 += temp;
+    }
+    srand(time(NULL));
+    char key[] = { '0','1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+
+    std::string stage2;
+    for(char c : stage1)
+    {
+        stage2 += c;
+        stage2 += key[rand() % 16];
+    }
+
+    std::string stage3 = "";
+    for(char c : stage2)
+        stage3 = c + stage3;
+
+    return stage3;
 }
-    Lic LicenseV2(string path)
+
+std::string devi::decrypt(std::string sin)
+{
+    std::string stage0 = "";
+    for(char c : sin)
+        stage0 = c + stage0;
+    
+    std::string stage1 = "";
+    bool cut = false;
+
+    for(char c : stage0)
     {
-        Lic result;
-        result.code = "0";
-        result.name = "0";
-        result.adress = "0";
-        result.zipCode = "0";
-        result.NIP = "0";
-
-        #region License
-        if (!File.Exists(path)) { MessageBox.Show("Klucz nie został podany", "ERROR", MessageBoxButtons.OK, MessageBoxIcon.Error); Close(); return result; }
-
-        string Code = File.ReadAllText(path);
-        result.code = Code;
-
-        string Stage1 = "";
-        foreach (char _char in Code)
-        {
-            Stage1 = _char + Stage1;
-        }
-
-        string Stage2 = "";
-        bool cut = false;
-        foreach (char _char in Stage1)
-        {
-            if (cut) cut = false;
-            else { Stage2 += _char; cut = true; }
-        }
-        string[] arr1;
-
-        string Finish = ConvertHex2(Stage2);
-
-        try
-        {
-            arr1 = Finish.Split('|');
-        }
-        catch
-        {
-            MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); 
-            return result;
-        }
-
-        if (arr1.Length != 4) { MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return result; }
-
-        string[] arr2;
-        try
-        {
-            arr2 = arr1[2].Split('-');
-        }
-        catch
-        {
-            MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return result;
-        }
-
-        if (arr2.Length != 3) { MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return result; }
-
-        if (!CanParse_S(arr2[0])) { MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return result; }
-        if (arr2[0].Length != 2) { MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return result; }
-        if (!CanParse_S(arr2[1])) { MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return result; }
-        if (arr2[1].Length != 3) { MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return result; }
-        if (!CanParse_S(arr1[3])) { MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return result; }
-        if (arr1[3].Length != 10) { MessageBox.Show("Nieprawidłowy klucz!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return result; }
-
-
-        result.name = arr1[0];
-        result.adress = arr1[1];
-        result.zipCode = arr2[0] + "-" + arr2[1] + " " + arr2[2];
-        result.NIP = arr1[3];
-
-        return result;
-        #endregion
+        if(!cut) stage1 += c;
+        cut = !cut;
     }
 
-    private void btnGenerate_Click(object sender, EventArgs e)
+    std::cout << stage1 << std::endl;
+
+    std::string stage2 = "";
+    for(int i=0; i< stage1.length(); i+=2)
     {
-        string[] arr2;
-        try
-        {
-            arr2 = txtZipCode.Text.Split('-');
-        }
-        catch
-        {
-            MessageBox.Show("Nieprawidłowy format kodu pocztowego!\n\r Prawidłowy format to: xx-xxx-Miasto", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return;
-        }
-
-        if (arr2.Length != 3) { MessageBox.Show("Nieprawidłowy format kodu pocztowego!\n\r Prawidłowy format to: xx-xxx-Miasto", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-
-        if (!CanParse(arr2[0])) { MessageBox.Show("Kod pocztowy musi być liczbą!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-        if (arr2[0].Length != 2) { MessageBox.Show("Nieprawidłowy format kodu pocztowego!\n\r Prawidłowy format to: xx-xxx-Miasto", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-        if (!CanParse(arr2[1])) { MessageBox.Show("Kod pocztowy musi być liczbą!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-        if (arr2[1].Length != 3) { MessageBox.Show("Nieprawidłowy format kodu pocztowego!\n\r Prawidłowy format to: xx-xxx-Miasto", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-        if (!CanParse(txtNIP.Text)) { MessageBox.Show("NIP musi być liczbą!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-        if (txtNIP.Text.Length != 10) { MessageBox.Show("NIP musi mieć 10 cyfr!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
-
-        DialogResult result;
-        result = MessageBox.Show("Plik licencji już istnieje!\n\r Czy chcesz nadpisać plik?", "Ostrzeżenie", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-        if (result == DialogResult.No) return; 
-
-        var rand = new Random();
-        string Data = txtName.Text + "|" + txtAdress.Text + "|" + txtZipCode.Text + "|" + txtNIP.Text;
-        string[] Key = new string[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F" };
-
-        char[] charValues = Data.ToCharArray();
-        string hexOutput = "";
-        foreach (char _eachChar in charValues)
-        {
-            int value = Convert.ToInt32(_eachChar);
-            string temp = String.Format("{0:X}", value);
-            if (temp.Length == 2) temp = "0" + temp;
-            hexOutput += temp;
-        }
-
-        Console.WriteLine(hexOutput);
-
-        string Convert1 = "";
-        foreach (char _char in hexOutput)
-        {
-            Convert1 += _char;
-            Convert1 += Key[rand.Next(16)];
-        }
-
-        Console.WriteLine(Convert1);
-
-        string Lic = "";
-        foreach (char _char in Convert1)
-        {
-            Lic = _char + Lic;
-        }
-
-        Console.WriteLine(Lic);
-        txtProductKey.Text = Lic;
-
-        using (FileStream fs = File.Create(@"Key.Lic"))
-        {
-            AddText(fs, Lic);
-        }
-
-        MessageBox.Show("Wygenerowano klucz", "Sukces", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        std::string byte = stage1.substr(i,2);
+        char chr = (char) (int)strtol(byte.c_str(), NULL, 16);
+        stage2.push_back(chr);
     }
+    return stage2;
+}
 */
-
