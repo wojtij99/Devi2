@@ -4,7 +4,7 @@
 #include "../tools/sin.hpp"
 #include <map>
 
-void devi::Tables(crow::SimpleApp& app)
+void devi::Tables(crow::App<crow::CORSHandler>& app)
 {
     CROW_ROUTE(app, "/tables")
     .methods(crow::HTTPMethod::GET)

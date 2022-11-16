@@ -1,4 +1,5 @@
 #include <crow.h>
+#include <crow/middlewares/cors.h>
 #include <mysql/mysql.h>
 #include <iostream>
 
@@ -18,11 +19,18 @@ int main()
     if(!devi::sql_start(&sql)) return -1;
         mysql_close(&sql);
 
-    crow::SimpleApp app;
+    crow::App<crow::CORSHandler> app;
 
     #if !DEBUG_MODE
         app.loglevel(crow::LogLevel::Warning);
     #endif
+
+    auto& cors = app.get_middleware<crow::CORSHandler>();
+
+    cors
+      .global()
+        .headers("access-control-allow-origin", "*")
+        .methods("POST"_method, "GET"_method);
 
     CROW_ROUTE(app, "/")
     ([&](){

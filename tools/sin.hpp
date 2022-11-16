@@ -1,6 +1,7 @@
 #pragma once
 #include <crow.h>
 #include <map>
+#include <crow/middlewares/cors.h>
 
 namespace devi
 {
@@ -24,7 +25,7 @@ namespace devi
         dateTime_t  expiredate;
     };
 
-    void SIN(crow::SimpleApp& app);
+    void SIN(crow::App<crow::CORSHandler>& app);
     bool checkSIN(std::string SIN, const crow::request& req);
     //std::string encrypt(std::string ip, std::string user_agent, std::string user, std::string db);
     //std::string decrypt(std::string sin);

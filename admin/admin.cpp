@@ -2,7 +2,7 @@
 #include "../tools/sql.hpp"
 #include <mysql/mysql.h>
 
-void devi::Admin(crow::SimpleApp& app)
+void devi::Admin(crow::App<crow::CORSHandler>& app)
 {
     CROW_ROUTE(app, "/admin/addNewCompany")
     .methods(crow::HTTPMethod::POST)

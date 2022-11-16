@@ -62,7 +62,7 @@ std::string generateSIN()
     return result;
 }
 
-void devi::SIN(crow::SimpleApp& app)
+void devi::SIN(crow::App<crow::CORSHandler>& app)
 {
     CROW_ROUTE(app, "/getSIN")
     .methods(crow::HTTPMethod::GET)
@@ -164,7 +164,7 @@ void devi::SIN(crow::SimpleApp& app)
             return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
 
         SINs.erase(SINs.find(sin));
-        return crow::response(crow::OK, sin);
+        return crow::response(crow::OK);
     });
 }
 
