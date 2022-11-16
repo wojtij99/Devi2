@@ -75,9 +75,9 @@ void devi::SIN(crow::SimpleApp& app)
 
         try
         {
-            user    = body["user"].s();
-            pass    = body["pass"].s();
-            db      = body["db"].s();
+            user    = parseStr(body["user"].s());
+            pass    = parseStr(body["pass"].s());
+            db      = parseStr(body["db"].s());
         }
         catch(const std::runtime_error& e)
         {
@@ -141,6 +141,31 @@ void devi::SIN(crow::SimpleApp& app)
         std::cout << host << std::endl;
         return crow::response(crow::OK, sin);
     }); 
+
+    CROW_ROUTE(app, "/dropSIN")
+    .methods(crow::HTTPMethod::DELETE)
+    ([](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if(!body) 
+            return crow::response(crow::BAD_REQUEST, "Invalid body");
+
+        std::string sin;
+
+        try
+        {
+            sin    = parseStr(body["sin"].s());
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "Invalid body");
+        }
+
+        if(!checkSIN(sin, req))
+            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+
+        SINs.erase(SINs.find(sin));
+        return crow::response(crow::OK, sin);
+    });
 }
 
 bool devi::checkSIN(std::string _sin, const crow::request& req)

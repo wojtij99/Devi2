@@ -15,8 +15,8 @@ int main()
 {
     MYSQL sql;
 
-    //if(!devi::sql_start(&sql)) return -1;
-    //mysql_close(&sql);
+    if(!devi::sql_start(&sql)) return -1;
+        mysql_close(&sql);
 
     crow::SimpleApp app;
 
