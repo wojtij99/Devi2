@@ -7,11 +7,11 @@
 void devi::Tables(crow::App<crow::CORSHandler>& app)
 {
     CROW_ROUTE(app, "/tables")
-    .methods(crow::HTTPMethod::GET)
+    .methods(crow::HTTPMethod::POST)
     ([&](const crow::request& req){
         auto body = crow::json::load(req.body);
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
 
@@ -21,14 +21,14 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         if(!checkSIN(sin, req))
-            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
 
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
@@ -39,13 +39,16 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         while ((sql_row = mysql_fetch_row(sql_response)) != NULL)
         {
-            response += sql_row[0];
-            response += ", ";
-            std::cout << sql_row[0] << std::endl;
+            std::string temp = sql_row[0];
+            if (temp.rfind("system_", 0) != 0)
+                response += temp + ",";
         }
 
+        if(response.length() > 1)
+            response[response.length() - 1] = ' ';
+
         mysql_close(&sql);
-        return crow::response(crow::OK, response);
+        return crow::response(crow::OK, "{\"tables\": \"" + response +"\"}");
     });
 
     CROW_ROUTE(app, "/tables/add")
@@ -53,7 +56,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
     ([&](const crow::request& req){
         auto body = crow::json::load(req.body);
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string name, sin;
 
@@ -64,20 +67,20 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         if(!checkSIN(sin, req))
-            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
 
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
         
         if(!exec_NOquery(&sql, {"CREATE TABLE `", name ,"`(ID INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(ID));"})) 
-            return crow::response(crow::CONFLICT, "Can't create table");
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
         mysql_close(&sql);
         return crow::response(crow::OK);
@@ -88,7 +91,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
     ([&](const crow::request& req, std::string table){
         auto body = crow::json::load(req.body);
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string name, type, sin;
 
@@ -100,13 +103,13 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         if(!checkSIN(sin, req))
-            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
-        std::vector<std::string> types = {"INT", "TEXT", "DATETIME", "DATE", "FLOAT", "BOOL", "KEY"};
+        std::vector<std::string> types = {"INT", "TEXT", "DATETIME", "TIME", "DATE", "FLOAT", "BOOL", "KEY"};
         boost::to_upper(type);
         
         bool inCorrectType = true;
@@ -119,15 +122,15 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(type == "KEY") type = "INT";
 
         if(inCorrectType) 
-            return crow::response(crow::BAD_REQUEST, "Incorrect type");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Incorrect type\"}");
 
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
         
         if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` ADD `" , name ,"` ", type , ";"}, false)) 
-            return crow::response(crow::CONFLICT, "Can't create table");
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
         mysql_close(&sql);
         return crow::response(crow::OK);
@@ -138,7 +141,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
     ([&](const crow::request& req, std::string table){
         auto body = crow::json::load(req.body);
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
 
@@ -148,14 +151,14 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         if(!checkSIN(sin, req))
-            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
 
@@ -175,7 +178,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         {
             if(b.key() == "sin" || b.key() == "ID") continue;
             if(values.find(b.key()) == values.end())
-                return crow::response(crow::BAD_REQUEST, "Invalid body!");
+                return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
             values[b.key()] = std::pair<short, std::string>(values[b.key()].first,b.s());
         }
 
@@ -200,7 +203,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         std::cout << values_str << std::endl;
 
         if(!exec_NOquery(&sql, {"INSERT INTO `", table ,"` VALUES(", values_str ,");"}, false)) 
-            return crow::response(crow::CONFLICT, "Can't insert data");
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't insert data\"}");
 
         mysql_close(&sql);
         return crow::response(crow::OK);
@@ -211,7 +214,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
     ([&](const crow::request& req, std::string table, int id){
         auto body = crow::json::load(req.body);
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin, column, value;
 
@@ -223,22 +226,22 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         if(column == "ID")
-            return crow::response(crow::BAD_REQUEST, "Invalid column");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid column\"}");
 
         if(!checkSIN(sin, req))
-            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
         
         if(!exec_NOquery(&sql, {"UPDATE `", table ,"` SET `", column ,"` = '", value ,"' WHERE `ID` = '", std::to_string(id),"' ;"}, false)) 
-            return crow::response(crow::CONFLICT, "Can't create table");
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
         mysql_close(&sql);
         return crow::response(crow::OK);
@@ -249,7 +252,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
     ([&](const crow::request& req, std::string table, int id){
         auto body = crow::json::load(req.body);
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
 
@@ -259,30 +262,30 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         if(!checkSIN(sin, req))
-            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
         
         if(!exec_NOquery(&sql, {"DELETE FROM `", table ,"` WHERE `ID` = '", std::to_string(id),"' ;"}, false)) 
-            return crow::response(crow::CONFLICT, "Can't create table");
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
         mysql_close(&sql);
         return crow::response(crow::OK);
     });
 
     CROW_ROUTE(app, "/tables/<string>/select/<int>")
-    .methods(crow::HTTPMethod::GET)
+    .methods(crow::HTTPMethod::POST)
     ([&](const crow::request& req, std::string table, int id){
         auto body = crow::json::load(req.body);
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
 
@@ -292,14 +295,14 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         if(!checkSIN(sin, req))
-            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
 
@@ -318,7 +321,6 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
                     result[sql_fil[i].name] = sql_row[i];
                 else
                     result[sql_fil[i].name] = "NULL";
-                //std::cout << sql_fil[i].type << std::endl;
             }
         }
 
@@ -327,11 +329,11 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
     });
 
     CROW_ROUTE(app, "/tables/<string>/select/all")
-    .methods(crow::HTTPMethod::GET)
+    .methods(crow::HTTPMethod::POST)
     ([&](const crow::request& req, std::string table){
         auto body = crow::json::load(req.body);
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
 
@@ -341,14 +343,14 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         if(!checkSIN(sin, req))
-            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB");
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
 
@@ -359,10 +361,26 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         crow::json::wvalue result;
         std::vector<std::string> resrow;
         std::vector<std::string> legend;
+        std::vector<std::string> types;
 
         MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
         for (int i = 0; i < mysql_num_fields(sql_response); i++) 
+        {
             legend.emplace_back(sql_fil[i].name);
+            //types.emplace_back(sql_fil[i].type);
+            switch (sql_fil[i].type)
+            {
+                case enum_field_types::MYSQL_TYPE_LONG:     types.emplace_back("INT");break;
+                case enum_field_types::MYSQL_TYPE_BLOB:     types.emplace_back("TEXT");break;
+                case enum_field_types::MYSQL_TYPE_DATE:     types.emplace_back("DATE");break;
+                case enum_field_types::MYSQL_TYPE_TIME:     types.emplace_back("TIME");break;
+                case enum_field_types::MYSQL_TYPE_DATETIME: types.emplace_back("DATETIME");break;
+                case enum_field_types::MYSQL_TYPE_FLOAT:    types.emplace_back("FLOAT");break;
+                case enum_field_types::MYSQL_TYPE_TINY:     types.emplace_back("BOOL");break;
+            default:
+                break;
+            }
+        }
         
         int i = 0;
         while ((sql_row = mysql_fetch_row(sql_response)) != NULL)
@@ -379,6 +397,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             i++;
         }
 
+        result["Types"]  = types;
         result["Legend"] = legend;
         
         mysql_close(&sql);

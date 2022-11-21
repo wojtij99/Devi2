@@ -34,7 +34,7 @@ std::vector<std::string> split(std::string _string, char _delimiter)
     return result;
 }
 
-devi::dateTime_t convertDTstr2t(std::string _string)
+/*devi::dateTime_t convertDTstr2t(std::string _string)
 {
     std::vector<std::string> temp = split(_string, '.');
     std::vector<std::string> date = split(temp[0], '-');
@@ -50,7 +50,7 @@ devi::dateTime_t convertDTstr2t(std::string _string)
         std::stoi(time[2])
     };
     return result;
-}
+}*/
 
 std::string generateSIN()
 {
@@ -65,11 +65,12 @@ std::string generateSIN()
 void devi::SIN(crow::App<crow::CORSHandler>& app)
 {
     CROW_ROUTE(app, "/getSIN")
-    .methods(crow::HTTPMethod::GET)
+    .methods(crow::HTTPMethod::POST)
     ([](const crow::request& req){
         auto body = crow::json::load(req.body);
+        std::cout << body << std::endl;
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string user, pass, db, user_agent, host;
 
@@ -81,19 +82,19 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         for(auto _s : SINs)
         {
             if(_s.second.user == user && _s.second.db == db)
             {
-                if(abs(_s.second.expiredate.hour - convertDTstr2t(currentDateTime()).hour) > 1)
+                if(_s.second.expiredate - time(NULL) < 0)
                 {
                     SINs.erase(SINs.find(_s.first));
-                    return crow::response(crow::GONE, "Your SIN is expired");
+                    return crow::response(crow::GONE, "{\"response\":\"Your SIN is expired\"}");
                 }
-                return crow::response(crow::CONFLICT, "You already have your SIN");
+                return crow::response(crow::OK, "{\"sin\": \"" + _s.first +"\"}");
             }
         }
 
@@ -104,11 +105,11 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid header");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid haeder\"}");
         }
 
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + db)) return crow::response(crow::SERVICE_UNAVAILABLE, "Can't connect to DB ");
+        if(!devi::sql_start(&sql, "db_" + db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB'}");
 
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
@@ -122,7 +123,7 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         if ((sql_row = mysql_fetch_row(sql_response)) == NULL)
         {
             mysql_close(&sql);
-            return crow::response(crow::UNAUTHORIZED, "Invalid user or password");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid user or password\"}");
         }
 
         std::string sin;
@@ -132,14 +133,12 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         } while (SINs.find(sin) != SINs.end());
         
 
-        dateTime_t dt = convertDTstr2t( currentDateTime());
-        dt.hour++;
-        sin_t sin_struct = {host, user_agent, user, db, convertDTstr2t( currentDateTime()), dt};
+        sin_t sin_struct = {host, user_agent, user, db, time(NULL), time(NULL) + 5 * 60};
 
         SINs[sin] = sin_struct;
 
         std::cout << host << std::endl;
-        return crow::response(crow::OK, sin);
+        return crow::response(crow::OK, "{\"sin\": \"" + sin +"\"}");
     }); 
 
     CROW_ROUTE(app, "/dropSIN")
@@ -147,7 +146,7 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
     ([](const crow::request& req){
         auto body = crow::json::load(req.body);
         if(!body) 
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
 
@@ -157,11 +156,11 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         }
         catch(const std::runtime_error& e)
         {
-            return crow::response(crow::BAD_REQUEST, "Invalid body");
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
         if(!checkSIN(sin, req))
-            return crow::response(crow::UNAUTHORIZED, "Wrong SIN");
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
         SINs.erase(SINs.find(sin));
         return crow::response(crow::OK);
@@ -185,6 +184,13 @@ bool devi::checkSIN(std::string _sin, const crow::request& req)
 
     if(SINs[_sin].ip != host || SINs[_sin].user_agent != user_agent) return false;
 
+    if(SINs[_sin].expiredate - time(NULL) < 0)
+    {
+        SINs.erase(SINs.find(_sin));
+        return false;
+    }
+
+    SINs[_sin].expiredate = time(NULL) + 5 * 60;
     return true;
 }
 

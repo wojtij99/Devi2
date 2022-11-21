@@ -29,14 +29,15 @@ int main()
 
     cors
       .global()
-        .headers("access-control-allow-origin", "*")
-        .methods("POST"_method, "GET"_method);
+        //.headers("access-control-allow-origin", "*")
+        .methods("POST"_method, "GET"_method, "DELETE"_method, "PUT"_method)
+        .origin("*");
 
     CROW_ROUTE(app, "/")
     ([&](){
         std::stringstream result;
         result << "WELCOME!" << std::endl << "Connected to DB on " << SQL_HOST << ":" << SQL_PORT << std::endl <<
-        "+----------------------------+--------+------------+-------------------+" << std::endl <<
+        "+----------------------------+--------+------------+-------------------+ " << std::endl <<
         "|           Route            | Method |   Parans   |    Description    | " << std::endl <<
         "+----------------------------+--------+------------+-------------------+ " << std::endl <<
         "| /                          | GET    |            | return this page  | " << std::endl <<

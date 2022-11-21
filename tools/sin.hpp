@@ -5,7 +5,7 @@
 
 namespace devi
 {
-    struct dateTime_t
+    /*struct dateTime_t
     {
         int   year;
         short month;
@@ -13,7 +13,7 @@ namespace devi
         short hour;
         short minute;
         short second;
-    };
+    };*/
 
     struct sin_t //Securyty Indentified Number
     {
@@ -21,8 +21,8 @@ namespace devi
         std::string user_agent;
         std::string user;
         std::string db;
-        dateTime_t  creationDT;
-        dateTime_t  expiredate;
+        time_t  creationDT;
+        time_t  expiredate;
     };
 
     void SIN(crow::App<crow::CORSHandler>& app);
