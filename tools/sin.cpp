@@ -68,11 +68,12 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
     .methods(crow::HTTPMethod::POST)
     ([](const crow::request& req){
         auto body = crow::json::load(req.body);
-        std::cout << body << std::endl;
+        std::cout << req.remote_ip_address << std::endl;
+
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
-        std::string user, pass, db, user_agent, host;
+        std::string user, pass, db, user_agent, host = req.remote_ip_address;
 
         try
         {
@@ -85,7 +86,21 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
+
         for(auto _s : SINs)
+        {
+            if(_s.second.expiredate - time(NULL) < 0)
+            {
+                SINs.erase(SINs.find(_s.first));
+                if(_s.second.user == user && _s.second.db == db)
+                    return crow::response(crow::GONE, "{\"response\":\"Your SIN is expired\"}");
+            }
+            else if(_s.second.user == user && _s.second.db == db)
+                return crow::response(crow::OK, "{\"sin\": \"" + _s.first +"\"}");
+        }
+
+        
+        /*for(auto _s : SINs)
         {
             if(_s.second.user == user && _s.second.db == db)
             {
@@ -96,12 +111,12 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
                 }
                 return crow::response(crow::OK, "{\"sin\": \"" + _s.first +"\"}");
             }
-        }
+        }*/
 
         try
         {
             user_agent = req.get_header_value("User-Agent");
-            host = req.get_header_value("Host");
+            //host = req.get_header_value("Host");
         }
         catch(const std::runtime_error& e)
         {
@@ -137,7 +152,7 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
 
         SINs[sin] = sin_struct;
 
-        std::cout << host << std::endl;
+        //std::cout << host << " - " << user_agent << std::endl;
         return crow::response(crow::OK, "{\"sin\": \"" + sin +"\"}");
     }); 
 
@@ -171,11 +186,11 @@ bool devi::checkSIN(std::string _sin, const crow::request& req)
 {
     if(SINs.find(_sin) == SINs.end()) return false;
 
-    std::string user_agent, host;
+    std::string user_agent, host = req.remote_ip_address;
     try
     {
         user_agent = req.get_header_value("User-Agent");
-        host = req.get_header_value("Host");
+        //host = req.get_header_value("Host");
     }
     catch(const std::runtime_error& e)
     {

@@ -51,19 +51,19 @@ void devi::Admin(crow::App<crow::CORSHandler>& app)
 
         mysql_query(&sql, "START TRANSACTION;");
 
-        if(!exec_NOquery(&sql, {"CREATE DATABASE db_", name ," DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;"}))
+        if(!exec_NOquery(&sql, {"CREATE DATABASE db_", name ," DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;"}, true))
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create DB\"}");
 
-        if(!exec_NOquery(&sql, {"INSERT INTO `companies` VALUES(NULL,'", name, "', '", email, "')"}))
+        if(!exec_NOquery(&sql, {"INSERT INTO `companies` VALUES(NULL,'", name, "', '", email, "')"}, true))
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't add Db to register\"}");
 
         mysql_close(&sql);
         if(!devi::sql_start(&sql, "db_" + name)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TABLE system_users(ID INT NOT NULL AUTO_INCREMENT, name TEXT NOT NULL, pass TEXT NOT NULL, PRIMARY KEY(ID));"})) 
+        if(!exec_NOquery(&sql, {"CREATE TABLE system_users(ID INT NOT NULL AUTO_INCREMENT, name TEXT NOT NULL, pass TEXT NOT NULL, PRIMARY KEY(ID));"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't init DB\"}");
 
-        if(!exec_NOquery(&sql, {"INSERT INTO system_users VALUES(NULL, '", user, "', '", pass, "');"})) 
+        if(!exec_NOquery(&sql, {"INSERT INTO system_users VALUES(NULL, '", user, "', '", pass, "');"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't insert user to DB\"}");
 
         mysql_query(&sql, "COMMIT;");

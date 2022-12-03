@@ -34,3 +34,5 @@
 # VSCode
 *.code-workspace
 settings.json
+
+temp.sql

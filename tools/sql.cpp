@@ -28,7 +28,7 @@ bool devi::exec_NOquery(MYSQL* sql,std::initializer_list<std::string> _commnd,  
             mysql_query(sql, "ROLLBACK;");
 
         #if DEBUG_MODE == true
-            std::cout << mysql_error(sql) << std::endl;
+            std::cout << command << std::endl << mysql_error(sql) << std::endl;
         #endif
 
         if(closeFlag)
@@ -41,7 +41,7 @@ bool devi::exec_NOquery(MYSQL* sql,std::initializer_list<std::string> _commnd,  
 std::string devi::parseStr(std::string _str)
 {
     std::string result;
-    std::string illegalChars = "/\\'\"";
+    std::string illegalChars = "/\\'\";";
     //std::cout << illegalChars.length() << " - " << illegalChars << std::endl;
     for(int i = 0; i < _str.length(); i++)
     {
