@@ -89,13 +89,13 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"CREATE TABLE `log_", name ,"`(ID INT NOT NULL AUTO_INCREMENT,action TEXT, actionDT DATETIME NOT NULL, dataID INT, PRIMARY KEY(ID));"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_insert AFTER INSERT ON ", name, " FOR EACH ROW BEGIN INSERT INTO log_", name, " VALUES(NULL, \"INSERT\", NOW(), NEW.ID); END"}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_insert AFTER INSERT ON ", name, " FOR EACH ROW INSERT INTO log_", name, " VALUES(NULL, \"INSERT\", NOW(), NEW.ID); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_update AFTER UPDATE ON ", name, " FOR EACH ROW BEGIN INSERT INTO log_", name, " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID); END"}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_update AFTER UPDATE ON ", name, " FOR EACH ROW INSERT INTO log_", name, " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_delete AFTER DELETE ON ", name, " FOR EACH ROW BEGIN INSERT INTO log_", name, " VALUES(NULL, \"DELETE\", NOW(), OLD.ID); END"}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_delete AFTER DELETE ON ", name, " FOR EACH ROW INSERT INTO log_", name, " VALUES(NULL, \"DELETE\", NOW(), OLD.ID); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
         mysql_query(&sql, "COMMIT;");
@@ -149,7 +149,6 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
         mysql_query(&sql, "START TRANSACTION;");
-
         
         if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` ADD `" , name ,"` ", type , ";"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
@@ -501,7 +500,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
     CROW_ROUTE(app, "/tables/<string>/alter")
     .methods(crow::HTTPMethod::POST)
-    ([&](const crow::request& req, std::string table, int id){
+    ([&](const crow::request& req, std::string table){
         auto body = crow::json::load(req.body);
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
@@ -541,20 +540,279 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(inCorrectType) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Incorrect type\"}");
 
-
         MYSQL sql;
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
+            return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
-        
-        if(!exec_NOquery(&sql, {"ALTER `", table ,"` CHANGE `", name ,"` `", newName,"` ", newType ," ;"}, false)) 
+
+        if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` CHANGE `", name ,"` `", newName,"` ", newType ," ;"})) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        if(!exec_NOquery(&sql, {"ALTER `log_", table ,"` CHANGE `", name ,"` `", newName,"` ", newType ," ;"}, false)) 
+        if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table ,"` CHANGE `new_", name ,"` `new_", newName,"` ", newType ," ;"})) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
+        if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table ,"` CHANGE `old_", name ,"` `old_", newName,"` ", newType ," ;"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
+        std::string query = "SELECT * FROM `" + table + "` ORDER BY `ID` ;";
+        mysql_query(&sql, query.c_str());
+        sql_response = mysql_store_result(&sql);
+
+        std::string stm_insert = "INSERT INTO log_" + table + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
+                    stm_update = "INSERT INTO log_" + table + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
+                    stm_delete ="INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+        MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
+        for (int i = 0; i < mysql_num_fields(sql_response); i++) 
+        {
+            std::string temp = std::string(sql_fil[i].name);
+            if(temp == "ID") 
+                continue;
+            stm_insert += ", NEW." + temp + ", NULL";
+            stm_update += ", NEW." + temp + ", OLD." + temp;
+            stm_delete += ", NULL, OLD." + temp;
+        }
+
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
+            return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+
+        exec_NOquery(&sql, {"START TRANSACTION"});
+
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
+        
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_update;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table2\"}");
+        
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
+        
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_insert AFTER INSERT ON ", table, " FOR EACH ROW ", stm_insert, "); "}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table4\"}");
+
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_update AFTER UPDATE ON ", table, " FOR EACH ROW ", stm_update, "); "}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table5\"}");
+
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_delete AFTER DELETE ON ", table, " FOR EACH ROW ", stm_delete, "); "}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
 
         mysql_close(&sql);
         return crow::response(crow::OK);
     });
 
+    CROW_ROUTE(app, "/tables/<string>/rename")
+    .methods(crow::HTTPMethod::POST)
+    ([&](const crow::request& req, std::string table){
+        auto body = crow::json::load(req.body);
+        if(!body) 
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+
+        std::string sin, name;
+
+        try
+        {
+            sin     = parseStr(body["sin"].s());
+            name    = parseStr(body["name"].s());
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+        }
+
+        if(name == "ID")
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid name\"}");
+
+        if(!checkSIN(sin, req))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
+            return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
+
+        if(!exec_NOquery(&sql, {"RENAME TABLE `db_", SINs[sin].db ,"`.`", table ,"` TO `db_", SINs[sin].db ,"`.`", name ,"`;"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+        
+        if(!exec_NOquery(&sql, {"RENAME TABLE `db_", SINs[sin].db ,"`.`log_", table ,"` TO `db_", SINs[sin].db ,"`.`log_", name ,"`;"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
+
+        std::string query = "SELECT * FROM `" + name + "` ORDER BY `ID` ;";
+        mysql_query(&sql, query.c_str());
+        sql_response = mysql_store_result(&sql);
+
+        std::string stm_insert = "INSERT INTO log_" + name + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
+                    stm_update = "INSERT INTO log_" + name + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
+                    stm_delete ="INSERT INTO log_" + name + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+        MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
+        for (int i = 0; i < mysql_num_fields(sql_response); i++) 
+        {
+            std::string temp = std::string(sql_fil[i].name);
+            if(temp == "ID") 
+                continue;
+            stm_insert += ", NEW." + temp + ", NULL";
+            stm_update += ", NEW." + temp + ", OLD." + temp;
+            stm_delete += ", NULL, OLD." + temp;
+        }
+
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
+            return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+
+        exec_NOquery(&sql, {"START TRANSACTION"});
+
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
+        
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_update;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table2\"}");
+        
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
+        
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_insert AFTER INSERT ON ", name, " FOR EACH ROW ", stm_insert, "); "}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table4\"}");
+
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_update AFTER UPDATE ON ", name, " FOR EACH ROW ", stm_update, "); "}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table5\"}");
+
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_delete AFTER DELETE ON ", name, " FOR EACH ROW ", stm_delete, "); "}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
+
+        mysql_close(&sql);
+        return crow::response(crow::OK);
+    });
+
+    CROW_ROUTE(app, "/tables/<string>/dropColumn")
+    .methods(crow::HTTPMethod::DELETE)
+    ([&](const crow::request& req, std::string table){
+        auto body = crow::json::load(req.body);
+        if(!body) 
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+
+        std::string sin, name;
+
+        try
+        {
+            sin     = parseStr(body["sin"].s());
+            name    = parseStr(body["name"].s());
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+        }
+
+        if(name == "ID")
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid name\"}");
+
+        if(!checkSIN(sin, req))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
+            return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
+
+        if(!exec_NOquery(&sql, {"ALTER TABLE `", table,"` DROP `", name,"`;"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+        
+        if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table,"` DROP `old_", name,"`;"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
+        if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table,"` DROP `new_", name,"`;"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
+        std::string query = "SELECT * FROM `" + table + "` ORDER BY `ID` ;";
+        mysql_query(&sql, query.c_str());
+        sql_response = mysql_store_result(&sql);
+
+        std::string stm_insert = "INSERT INTO log_" + table + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
+                    stm_update = "INSERT INTO log_" + table + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
+                    stm_delete = "INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+        MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
+        for (int i = 0; i < mysql_num_fields(sql_response); i++) 
+        {
+            std::string temp = std::string(sql_fil[i].name);
+            if(temp == "ID") 
+                continue;
+            stm_insert += ", NEW." + temp + ", NULL";
+            stm_update += ", NEW." + temp + ", OLD." + temp;
+            stm_delete += ", NULL, OLD." + temp;
+        }
+
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
+            return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+
+        exec_NOquery(&sql, {"START TRANSACTION"});
+
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
+        
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_update;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table2\"}");
+        
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
+        
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_insert AFTER INSERT ON ", table, " FOR EACH ROW ", stm_insert, "); "}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table4\"}");
+
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_update AFTER UPDATE ON ", table, " FOR EACH ROW ", stm_update, "); "}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table5\"}");
+
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_delete AFTER DELETE ON ", table, " FOR EACH ROW ", stm_delete, "); "}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
+
+        mysql_close(&sql);
+        return crow::response(crow::OK);
+    });
+
+    CROW_ROUTE(app, "/tables/<string>/dropTable")
+    .methods(crow::HTTPMethod::DELETE)
+    ([&](const crow::request& req, std::string table){
+        auto body = crow::json::load(req.body);
+        if(!body) 
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+
+        std::string sin;
+
+        try
+        {
+            sin     = parseStr(body["sin"].s());
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+        }
+
+        if(!checkSIN(sin, req))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
+            return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
+
+        if(!exec_NOquery(&sql, {"DROP TABLE `", table,"`;"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+        
+        if(!exec_NOquery(&sql, {"DROP TABLE `log_", table,"`;"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
+        exec_NOquery(&sql, {"START TRANSACTION"});
+
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
+        
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_update;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table2\"}");
+        
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
+
+        mysql_close(&sql);
+        return crow::response(crow::OK);
+    });
 }
