@@ -9,7 +9,7 @@
 #else
     #define SQL_USER "root"
     #define SQL_PASS ""
-    #define SQL_PORT 4306
+    #define SQL_PORT 3306
 #endif
 
 #define API_PORT 3001

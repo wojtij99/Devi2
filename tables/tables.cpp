@@ -4,6 +4,12 @@
 #include "../tools/sin.hpp"
 #include <map>
 
+bool isSystemTable(std::string _table)
+{
+    if (_table.rfind("system_", 0) != 0 && _table.rfind("log_",0) != 0) return false;
+    return true;
+}
+
 void devi::Tables(crow::App<crow::CORSHandler>& app)
 {
     CROW_ROUTE(app, "/tables")
@@ -83,10 +89,10 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         MYSQL_ROW sql_row;
         mysql_query(&sql, "START TRANSACTION;");
 
-        if(!exec_NOquery(&sql, {"CREATE TABLE `", name ,"`(ID INT NOT NULL AUTO_INCREMENT, PRIMARY KEY(ID));"}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TABLE `", name ,"`(ID INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY(ID));"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TABLE `log_", name ,"`(ID INT NOT NULL AUTO_INCREMENT,action TEXT, actionDT DATETIME NOT NULL, dataID INT, PRIMARY KEY(ID));"}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TABLE `log_", name ,"`(ID INT UNSIGNED NOT NULL AUTO_INCREMENT,action TEXT, actionDT DATETIME NOT NULL, dataID INT, PRIMARY KEY(ID));"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
         if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_insert AFTER INSERT ON ", name, " FOR EACH ROW INSERT INTO log_", name, " VALUES(NULL, \"INSERT\", NOW(), NEW.ID); "}, true)) 
@@ -110,7 +116,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
-        std::string name, type, sin;
+        std::string name, type, sin, references;
 
         try
         {
@@ -139,7 +145,21 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
                 inCorrectType = false;
                 continue;
             }
-        if(type == "KEY") type = "INT";
+        
+        bool iskey = false;
+        if(type == "KEY") 
+        {
+            iskey = true;
+            type = "INT UNSIGNED";
+            try
+            {
+                references = parseStr(body["references"].s());
+            }
+            catch(const std::runtime_error& e)
+            {
+                return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+            }
+        }
 
         if(inCorrectType) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Incorrect type\"}");
@@ -153,34 +173,33 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` ADD `" , name ,"` ", type , ";"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
 
+        if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` ADD FOREIGN KEY (`" , name ,"`) REFERENCES ", references , "(ID);"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
+
         if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table ,"` ADD `new_" , name ,"` ", type , ";"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
 
         if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table ,"` ADD `old_" , name ,"` ", type , ";"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
         
-        std::string query = "SHOW TRIGGERS;";
+        std::string query = "SELECT * FROM `" + table + "` ORDER BY `ID` ;";
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
 
-        std::map<std::string, std::string> triggers;
-        while ((sql_row = mysql_fetch_row(sql_response)) != NULL)
+        std::string stm_insert = "INSERT INTO log_" + table + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
+                    stm_update = "INSERT INTO log_" + table + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
+                    stm_delete ="INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+        MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
+        for (int i = 0; i < mysql_num_fields(sql_response); i++) 
         {
-            triggers[sql_row[0]] = sql_row[3];
+            std::string temp = std::string(sql_fil[i].name);
+            if(temp == "ID") 
+                continue;
+            stm_insert += ", NEW." + temp + ", NULL";
+            stm_update += ", NEW." + temp + ", OLD." + temp;
+            stm_delete += ", NULL, OLD." + temp;
         }
-        
-        if(triggers[SINs[sin].db + "_" + table + "_log_insert"].find(';') == std::string::npos)
-            return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column log 1\"}");
-        if(triggers[SINs[sin].db + "_" + table + "_log_update"].find(';') == std::string::npos)
-            return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column log 2\"}");
-        if(triggers[SINs[sin].db + "_" + table + "_log_delete"].find(';') == std::string::npos)
-            return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column lod 3\"}");
 
-        std::string stm_insert = triggers[SINs[sin].db + "_" + table + "_log_insert"].substr(0, triggers[SINs[sin].db + "_" + table + "_log_insert"].find(';') - 1) + ", NEW." + name + ", NULL); END",
-                    stm_update = triggers[SINs[sin].db + "_" + table + "_log_update"].substr(0, triggers[SINs[sin].db + "_" + table + "_log_update"].find(';') - 1) + ", NEW." + name + ", OLD." + name + "); END",
-                    stm_delete = triggers[SINs[sin].db + "_" + table + "_log_delete"].substr(0, triggers[SINs[sin].db + "_" + table + "_log_delete"].find(';') - 1) + ", NULL, OLD." + name + "); END";
-
-        
         if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
         
@@ -190,14 +209,15 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
         
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_insert AFTER INSERT ON ", table, " FOR EACH ROW ", stm_insert}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_insert AFTER INSERT ON ", table, " FOR EACH ROW ", stm_insert, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table4\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_update AFTER UPDATE ON ", table, " FOR EACH ROW ", stm_update}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_update AFTER UPDATE ON ", table, " FOR EACH ROW ", stm_update, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table5\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_delete AFTER DELETE ON ", table, " FOR EACH ROW ", stm_delete}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_delete AFTER DELETE ON ", table, " FOR EACH ROW ", stm_delete, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
+
 
         mysql_query(&sql, "COMMIT;");
         mysql_close(&sql);
@@ -462,6 +482,8 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         {
             legend.emplace_back(sql_fil[i].name);
             //types.emplace_back(sql_fil[i].type);
+            //std::cout << sql_fil[i].type << std::endl;
+
             switch (sql_fil[i].type)
             {
                 case enum_field_types::MYSQL_TYPE_LONG:     types.emplace_back("INT");break;
@@ -572,11 +594,6 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             stm_update += ", NEW." + temp + ", OLD." + temp;
             stm_delete += ", NULL, OLD." + temp;
         }
-
-        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
-            return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
-
-        exec_NOquery(&sql, {"START TRANSACTION"});
 
         if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
