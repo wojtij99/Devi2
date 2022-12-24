@@ -1,0 +1,47 @@
+\documentclass[a4paper, 12pt]{report}
+
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{xcolor}
+\usepackage{sectsty}
+\usepackage{tabularx}
+
+\definecolor{chapter_c}{rgb}{0.57, 0.0, 0.0}
+\definecolor{section_c}{rgb}{0.64, 0.0, 0.0}
+\definecolor{subsection_c}{rgb}{0.64, 0.0, 0.0}
+
+\chapterfont{\color{chapter_c}}  % sets colour of chapters
+\sectionfont{\color{section_c}}  % sets colour of sections
+\subsectionfont{\color{subsection_c}}
+
+\begin{document}
+
+\title{\Large{\textbf{DEVI project}}}
+\author{Wojciech Jędrzejewski}
+
+\maketitle
+
+\chapter{Introduction}
+
+\chapter{Database}
+
+\chapter{Commands}
+\section{Admin}
+Commands to administrate system. \textbf{NOT for user!}
+
+\subsection{/admin/addNewCompany}
+
+\begin{table}[!ht]
+    \raggedright
+    \begin{tabular}{|l|l|l|}
+    \hline
+        \textbf{NAME} & \textbf{TYPE} & \textbf{DESCRIPTION} \\ \hline
+        name & body & dupa \\ \hline
+        email & body & dupa \\ \hline
+        user & body & dupa \\ \hline
+        pass & body & dupa \\ \hline
+        key & body & dupa \\ \hline
+    \end{tabular}
+\end{table}
+
+\end{document}

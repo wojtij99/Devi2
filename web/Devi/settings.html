@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEVI 2.0</title>
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/APIconnection.js"></script>
+    <script src="js/login.js"></script>
+    <script src="js/cookies.js"></script>
+    <script src="js/settings.js"></script>
+    <script>
+        if(!isLogged())
+        {
+            //logoutScript();
+        }
+    </script>
+</head>
+<body onload="isLogged()">
+    <nav>
+        <a href="?page=tables"><div id='navElement'>Tabele</div></a>
+        <a href="main.html"><button>main</button></a>
+        <button onclick="logout()">LOGOUT</button>
+    </nav> <br>
+    <div style="clear: boath;"></div>
+    <section id="tab">
+            
+    </section>
+</body>
+<script>
+    getPage();
+</script>
+</html>
