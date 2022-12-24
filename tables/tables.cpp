@@ -10,6 +10,18 @@ bool isSystemTable(std::string _table)
     return true;
 }
 
+void getURL_param(const crow::request& _req, std::string _key, std::function<void(char*)> _succes)
+{
+    char* value = _req.url_params.get(_key);
+    if(value == nullptr) throw 0;
+    else _succes(value);
+}
+
+bool is_number(const std::string& s)
+{
+    return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+}
+
 std::string urlDecode(std::string SRC) 
 {
     std::string ret;
@@ -509,7 +521,32 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
 
-        std::string query = "SELECT * FROM `" + table + "` ORDER BY `ID` ;";
+        int limit = 0, page = 0;
+
+        try
+        {
+            try
+            {
+                getURL_param(req, "limit", [&](char* v) { (is_number(v)) ? limit = std::atoi(v) : limit = 0; });
+                getURL_param(req, "page", [&](char* v) { (is_number(v)) ? page = std::atoi(v) : page = 0; });
+            }
+            catch(int e) // w dupie mam obsługe tego nie ma to nie ma i chuj 
+            {
+                ;
+                //std::cout << "DUPA" << std::endl;
+                //return crow::response(crow::BAD_REQUEST, "Invalid query");
+            }
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "Invalid query");
+        }
+
+        std::string limit_str = "";
+
+        if(limit) limit_str = "LIMIT " + std::to_string(page * limit) + " , " + std::to_string(limit);
+
+        std::string query = "SELECT * FROM `" + table + "` ORDER BY `ID` " + limit_str + " ;";
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
 
