@@ -10,6 +10,23 @@ bool isSystemTable(std::string _table)
     return true;
 }
 
+std::string urlDecode(std::string SRC) 
+{
+    std::string ret;
+    char ch;
+    int i, ii;
+    for (i=0; i<SRC.length(); i++) {
+        if (SRC[i]=='%') {
+            sscanf(SRC.substr(i+1,2).c_str(), "%x", &ii);
+            ch=static_cast<char>(ii);
+            ret+=ch;
+            i=i+2;
+        } 
+        else ret+=SRC[i];
+    }
+    return (ret);
+}
+
 void devi::Tables(crow::App<crow::CORSHandler>& app)
 {
     CROW_ROUTE(app, "/tables")
@@ -46,7 +63,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         while ((sql_row = mysql_fetch_row(sql_response)) != NULL)
         {
             std::string temp = sql_row[0];
-            if (temp.rfind("system_", 0) != 0 && temp.rfind("log_",0) != 0)
+            if (!isSystemTable(temp))
                 response += temp + ",";
         }
 
@@ -76,7 +93,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
-        if (name.rfind("system_", 0) == 0 && name.rfind("log_",0) == 0)
+        if (isSystemTable(name))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid name\"}");
 
         if(!checkSIN(sin, req))
@@ -118,6 +135,8 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         std::string name, type, sin, references;
 
+        table = urlDecode(table);
+
         try
         {
             name    = parseStr(body["name"].s());
@@ -128,6 +147,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         {
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         if(name == "ID")
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid name\"}");
@@ -232,6 +254,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
+        table = urlDecode(table);
 
         try
         {
@@ -244,6 +267,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
@@ -303,6 +329,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin, column, value;
+        table = urlDecode(table);
 
         try
         {
@@ -318,6 +345,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
@@ -369,6 +399,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
+        table = urlDecode(table);
 
         try
         {
@@ -381,6 +412,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
@@ -414,6 +448,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
@@ -450,6 +487,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
+        table = urlDecode(table);
 
         try
         {
@@ -462,6 +500,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
@@ -528,6 +569,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin, name, newName, newType;
+        table = urlDecode(table);
 
         try
         {
@@ -546,6 +588,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         std::vector<std::string> types = {"INT", "TEXT", "DATETIME", "TIME", "DATE", "FLOAT", "BOOL", "KEY"};
         boost::to_upper(newType);
@@ -625,6 +670,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin, name;
+        table = urlDecode(table);
 
         try
         {
@@ -641,6 +687,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
@@ -708,6 +757,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin, name;
+        table = urlDecode(table);
 
         try
         {
@@ -724,6 +774,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
@@ -793,6 +846,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
+        table = urlDecode(table);
 
         try
         {
@@ -805,6 +859,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        if (isSystemTable(table))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
