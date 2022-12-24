@@ -35,4 +35,11 @@
 *.code-workspace
 settings.json
 
+#LaTeX
+*.aux
+*.fls
+*.log
+*.synctex.gz
+*.fdb_latexmk
+
 temp.sql
