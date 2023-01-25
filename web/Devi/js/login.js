@@ -20,7 +20,11 @@ function login()
 		document.getElementById("db").value = "";
 		setCookie("sin", data['sin']);
 		window.location.replace("main.html");
-	});
+	})
+	.catch((error) => {
+        console.log(error);
+       //logoutScript();
+    });
 }
 
 function logoutScript() 

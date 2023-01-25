@@ -12,6 +12,7 @@ function getTables()
         });
 	})
     .catch((error) => {
+        console.log(error);
        logoutScript();
     });
 }
@@ -34,7 +35,8 @@ function getTable()
 	
     postData('POST', 'http://localhost:3001/tables/' + product + '/select/all?' + queruyStr, toSend)
 	.then((data) => {
-        var result = "";
+        console.log(data);
+        var result ="";
         result += "<table id='js_tab'><tr id='rowLegend'>";
         data['Legend'].forEach((element, i) => {
             if(element != "ID")

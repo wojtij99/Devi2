@@ -5,7 +5,7 @@
 void devi::Admin(crow::App<crow::CORSHandler>& app)
 {
     CROW_ROUTE(app, "/admin/addNewCompany")
-    .methods(crow::HTTPMethod::POST)
+    .methods(crow::HTTPMethod::PUT)
     ([&](const crow::request& req){
         auto body = crow::json::load(req.body);
         if(!body) 

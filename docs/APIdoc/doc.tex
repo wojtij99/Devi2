@@ -6,12 +6,13 @@
 \usepackage{sectsty}
 \usepackage{tabularx}
 
-\definecolor{chapter_c}{rgb}{0.57, 0.0, 0.0}
+\definecolor{chapter_c}{rgb}{0.5, 0.0, 0.0}
 \definecolor{section_c}{rgb}{0.64, 0.0, 0.0}
-\definecolor{subsection_c}{rgb}{0.64, 0.0, 0.0}
+\definecolor{subsection_c}{rgb}{0.74, 0.0, 0.0}
+\definecolor{redText}{rgb}{0.9, 0.0, 0.0}
 
-\chapterfont{\color{chapter_c}}  % sets colour of chapters
-\sectionfont{\color{section_c}}  % sets colour of sections
+\chapterfont{\color{chapter_c}}
+\sectionfont{\color{section_c}}
 \subsectionfont{\color{subsection_c}}
 
 \begin{document}
@@ -31,17 +32,194 @@ Commands to administrate system. \textbf{NOT for user!}
 
 \subsection{/admin/addNewCompany}
 
-\begin{table}[!ht]
-    \raggedright
-    \begin{tabular}{|l|l|l|}
-    \hline
-        \textbf{NAME} & \textbf{TYPE} & \textbf{DESCRIPTION} \\ \hline
-        name & body & dupa \\ \hline
-        email & body & dupa \\ \hline
-        user & body & dupa \\ \hline
-        pass & body & dupa \\ \hline
-        key & body & dupa \\ \hline
-    \end{tabular}
-\end{table}
+
+\textbf{\color{redText} Description} \\
+Add new company to system. \\ \\
+\textbf{\color{redText} METHOD: } \textbf{PUT} \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } name of company and database \\
+\textbf{email: } company email \\
+\textbf{user: } user name for first user \\
+\textbf{pass: } password for first user \\
+\textbf{key: } admin key \\
+\textbf{\color{redText} Return: } NULL
+
+\section{SIN}
+\textbf{SIN} (\textbf{S}ecurry \textbf{I}ndentyfication \textbf{N}umber) - token to indentyfication user. It store user ip, user browser agent, user name and DB name.
+This number have 5 minutes time of live. Every call of \textbf{/getSIN} extends this time by next 5 minutes.
+You may have only one SIN per user.
+\subsection{/getSIN}
+\textbf{\color{redText} Description} \\
+Get SIN from server or when you have it extend it expire time. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} Haeder parameters} \\
+\textbf{User-Agent: } browser name (It's automaticly added by our browser)\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{user: } user name\\
+\textbf{pass: } user password\\
+\textbf{db: } admin key \\
+\textbf{\color{redText} Return: }\\
+\textbf{sin: } your SIN 
+
+\subsection{/dropSIN}
+\textbf{\color{redText} Description} \\
+Drop your SIN from server. It work like logout. \\
+\textbf{\color{redText} METHOD: } \textbf{DELETE} \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL
+
+\section{Tables}
+
+\subsection{/tables}
+\textbf{\color{redText} Description} \\
+Returns the names of all tables. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } \\
+\textbf{tables: } tables names separated by commas
+
+\subsection{/tables/add}
+\textbf{\color{redText} Description} \\
+Add new table. \\
+Name parameter cannot start with "log\_" or "system\_" \\
+\textbf{\color{redText} METHOD: } \textbf{PUT} \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } table name\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL
+
+\subsection{/tables/<table>/addColumn}
+\textbf{\color{redText} Description} \\
+Add new column to table. \\
+'ID' id not allowed name of column.\\
+Allowed types: 
+\begin{itemize}
+    \item INT - intiger 
+    \item TEXT - text 
+    \item DATETIME - date and time 
+    \item TIME - time
+    \item DATE - date
+    \item FLOAT - floating point number
+    \item BOOL - true/false value
+\end{itemize}
+\textbf{\color{redText} METHOD: } \textbf{PUT} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } column name\\
+\textbf{type: } column type.\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL
+
+\subsection{/tables/<table>/insert}
+\textbf{\color{redText} Description} \\
+Insert new row into table\\
+\textbf{\color{redText} METHOD: } \textbf{PUT} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+The name of the column you are inserting the value into is name of parameter. You can insert more than one value, but only one row. Values you do not send will be set to NULL.\\
+\textbf{\color{redText} Return: } NULL
+
+\subsection{/tables/<table>/update/<columnID>}
+\textbf{\color{redText} Description} \\
+Update row. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{columnID: } column ID\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{Name of cell you update is name of parameter}\\
+\textbf{\color{redText} Return: } NULL
+
+\subsection{/tables/<table>/delete/<columnID>}
+\textbf{\color{redText} Description} \\
+Delete row. \\
+\textbf{\color{redText} METHOD: } \textbf{DELETE} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{columnID: } column ID\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL
+
+\subsection{/tables/<table>/select/<columnID>}
+\textbf{\color{red} OUTDATED}\\
+\textbf{\color{redText} Description} \\
+Select row. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{columnID: } column ID\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } 
+\textbf{Name of cell is name of parameter}\\
+
+\subsection{/tables/<table>/select/all}
+\textbf{\color{redText} Description} \\
+Select all row from table. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{\color{redText} Query parameters} \\
+\textbf{*limit: } records per page \\
+\textbf{*page: } page number \\
+\textbf{*} - optional \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } \\
+\textbf{Legend: } array contain name of all colums \\
+\textbf{Types: } array contain type of all colums. Each value is array with values order like columns at Legend parameter. \\
+\textbf{Next parameters name 'row' and it number (starts from 0). Each value is array with values order like columns at Legend parameter.}\\
+
+\subsection{/tables/<table>/alter}
+\textbf{\color{redText} Description} \\
+Change name and type of column. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } actual name of column\\
+\textbf{newName: } new name of column. If you would not change name send actual\\
+\textbf{newType: } new type of column. If you would not change type send actual\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL
+
+\subsection{/tables/<table>/rename}
+\textbf{\color{redText} Description} \\
+Rename table. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } new name of table\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL
+
+\subsection{/tables/<table>/dropColumn}
+\textbf{\color{redText} Description} \\
+Delete column. \\
+\textbf{\color{redText} METHOD: } \textbf{DELETE} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } name of column\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL
+
+\subsection{/tables/<table>/dropTable}
+\textbf{\color{redText} Description} \\
+Delete table. \\
+\textbf{\color{redText} METHOD: } \textbf{DELETE} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{table: } table name\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL
 
 \end{document}

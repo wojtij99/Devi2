@@ -2,7 +2,7 @@
 #include <mysql/mysql.h>
 #include "../tools/sql.hpp"
 #include "../tools/sin.hpp"
-#include <map> //
+#include <map>
 
 bool isSystemTable(std::string _table)
 {
@@ -207,8 +207,8 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` ADD `" , name ,"` ", type , ";"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
 
-        if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` ADD FOREIGN KEY (`" , name ,"`) REFERENCES ", references , "(ID);"}, true)) 
-            return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
+        //if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` ADD FOREIGN KEY (`" , name ,"`) REFERENCES ", references , "(ID);"}, true)) 
+            //return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
 
         if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table ,"` ADD `new_" , name ,"` ", type , ";"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
@@ -522,20 +522,15 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         MYSQL_ROW sql_row;
 
         int limit = 0, page = 0;
+        std::string query_p = "", orderBy = "ID", orderType = "ASC";
 
         try
         {
-            try
-            {
-                getURL_param(req, "limit", [&](char* v) { (is_number(v)) ? limit = std::atoi(v) : limit = 0; });
-                getURL_param(req, "page", [&](char* v) { (is_number(v)) ? page = std::atoi(v) : page = 0; });
-            }
-            catch(int e) // w dupie mam obsługe tego nie ma to nie ma i chuj 
-            {
-                ;
-                //std::cout << "DUPA" << std::endl;
-                //return crow::response(crow::BAD_REQUEST, "Invalid query");
-            }
+            try {getURL_param(req, "limit", [&](char* v) { (is_number(v)) ? limit = std::atoi(v) : limit = 0; }); } catch(int e) {;}
+            try {getURL_param(req, "page", [&](char* v) { (is_number(v)) ? page = std::atoi(v) : page = 0; });} catch(int e) {;}
+            try {getURL_param(req, "query", [&](char* v) { query_p = v; });} catch(int e) {;}
+            try {getURL_param(req, "orderBy", [&](char* v) { (v == "") ? orderBy = v : orderBy = "ID"; });} catch(int e) {;}
+            try {getURL_param(req, "orderType", [&](char* v) { (v == "") ? orderType = v : orderType = "ASC"; });} catch(int e) {;}
         }
         catch(const std::runtime_error& e)
         {
@@ -546,7 +541,8 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(limit) limit_str = "LIMIT " + std::to_string(page * limit) + " , " + std::to_string(limit);
 
-        std::string query = "SELECT * FROM `" + table + "` ORDER BY `ID` " + limit_str + " ;";
+        std::string query = "SELECT * FROM `" + table + "` ORDER BY `" + orderBy + "` " + orderType + " " + limit_str + " ;";
+        std::cout << query_p << std::endl;
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
 
@@ -639,7 +635,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
                 inCorrectType = false;
                 continue;
             }
-        if(newType == "KEY") newType = "INT";
+        if(newType == "KEY") newType = "INT"; //ALTER TABLE `kartofle` ADD CONSTRAINT `rel_odmiana` FOREIGN KEY (`odmiana`) REFERENCES `odmiany`(`ID`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
         if(inCorrectType) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Incorrect type\"}");
@@ -665,7 +661,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         std::string stm_insert = "INSERT INTO log_" + table + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
                     stm_update = "INSERT INTO log_" + table + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
-                    stm_delete ="INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+                    stm_delete = "INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
         MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
         for (int i = 0; i < mysql_num_fields(sql_response); i++) 
         {
