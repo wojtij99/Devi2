@@ -13,7 +13,7 @@ bool isSystemTable(std::string _table)
 void getURL_param(const crow::request& _req, std::string _key, std::function<void(char*)> _succes)
 {
     char* value = _req.url_params.get(_key);
-    if(value == nullptr) throw 0;
+    if(value == nullptr) throw 1;
     else _succes(value);
 }
 
@@ -160,7 +160,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
-        if (isSystemTable(table))
+        if (isSystemTable(table) || table.rfind("dic_", 0) == 0)
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         if(name == "ID")
@@ -181,18 +181,24 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             }
         
         bool iskey = false;
+        std::string ref_table;
+
         if(type == "KEY") 
         {
             iskey = true;
             type = "INT UNSIGNED";
+
             try
             {
-                references = parseStr(body["references"].s());
+                ref_table = parseStr(body["references"].s());
             }
             catch(const std::runtime_error& e)
             {
-                return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+                return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid reference\"}");
             }
+
+            if (isSystemTable(ref_table))
+                return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
         }
 
         if(inCorrectType) 
@@ -204,11 +210,15 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         MYSQL_ROW sql_row;
         mysql_query(&sql, "START TRANSACTION;");
         
+        if(iskey)
+        {
+            if(!exec_NOquery(&sql, {"SELECT * FROM `", ref_table,"`"}, true)) 
+                return crow::response(crow::CONFLICT, "{\"response\":\"Wrong reference\"}");
+            sql_response = mysql_store_result(&sql);
+        }
+        
         if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` ADD `" , name ,"` ", type , ";"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
-
-        //if(!exec_NOquery(&sql, {"ALTER TABLE `", table ,"` ADD FOREIGN KEY (`" , name ,"`) REFERENCES ", references , "(ID);"}, true)) 
-            //return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
 
         if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table ,"` ADD `new_" , name ,"` ", type , ";"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't add column\"}");
@@ -222,16 +232,16 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         std::string stm_insert = "INSERT INTO log_" + table + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
                     stm_update = "INSERT INTO log_" + table + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
-                    stm_delete ="INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+                    stm_delete = "INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
         MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
         for (int i = 0; i < mysql_num_fields(sql_response); i++) 
         {
             std::string temp = std::string(sql_fil[i].name);
             if(temp == "ID") 
                 continue;
-            stm_insert += ", NEW." + temp + ", NULL";
-            stm_update += ", NEW." + temp + ", OLD." + temp;
-            stm_delete += ", NULL, OLD." + temp;
+            stm_insert += ", NEW.`" + temp + "`, NULL";
+            stm_update += ", NEW.`" + temp + "`, OLD.`" + temp + "`";
+            stm_delete += ", NULL, OLD.`" + temp + "`";
         }
 
         if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
@@ -252,6 +262,11 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_delete AFTER DELETE ON ", table, " FOR EACH ROW ", stm_delete, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
 
+        if(iskey)
+        {
+            if(!exec_NOquery(&sql, {"ALTER TABLE `", table,"` ADD CONSTRAINT `ref_", name,"_", table ,"` FOREIGN KEY (`", name,"`) REFERENCES `", ref_table,"`(`ID`) ON DELETE RESTRICT ON UPDATE RESTRICT;"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table7\"}");
+        }
 
         mysql_query(&sql, "COMMIT;");
         mysql_close(&sql);
@@ -521,6 +536,15 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
 
+        std::string query = "SELECT * FROM information_schema.key_column_usage WHERE constraint_schema = 'db_" + SINs[sin].db + "' AND table_name = '" + table + "' AND REFERENCED_TABLE_NAME IS NOT NULL;";
+        mysql_query(&sql, query.c_str());
+        sql_response = mysql_store_result(&sql);
+
+        std::map<std::string, std::string> keys; // column - ref
+
+        while ((sql_row = mysql_fetch_row(sql_response)) != NULL)
+            keys[sql_row[6]] = sql_row[10];
+
         int limit = 0, page = 0;
         std::string query_p = "", orderBy = "ID", orderType = "ASC";
 
@@ -541,8 +565,8 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(limit) limit_str = "LIMIT " + std::to_string(page * limit) + " , " + std::to_string(limit);
 
-        std::string query = "SELECT * FROM `" + table + "` ORDER BY `" + orderBy + "` " + orderType + " " + limit_str + " ;";
-        std::cout << query_p << std::endl;
+        query = "SELECT * FROM `" + table + "` ORDER BY `" + orderBy + "` " + orderType + " " + limit_str + " ;";
+        //std::cout << query_p << std::endl;
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
 
@@ -557,10 +581,11 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             legend.emplace_back(sql_fil[i].name);
             //types.emplace_back(sql_fil[i].type);
             //std::cout << sql_fil[i].type << std::endl;
+            std::map<std::string, std::string>::iterator keyPoz;
 
             switch (sql_fil[i].type)
             {
-                case enum_field_types::MYSQL_TYPE_LONG:     types.emplace_back("INT");break;
+                case enum_field_types::MYSQL_TYPE_LONG:     types.emplace_back(((keyPoz = keys.find(sql_fil[i].name)) != keys.end()) ? "KEY-" + keyPoz->second : "INT");break;
                 case enum_field_types::MYSQL_TYPE_BLOB:     types.emplace_back("TEXT");break;
                 case enum_field_types::MYSQL_TYPE_DATE:     types.emplace_back("DATE");break;
                 case enum_field_types::MYSQL_TYPE_TIME:     types.emplace_back("TIME");break;
@@ -622,7 +647,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
-        if (isSystemTable(table))
+        if (isSystemTable(table) || table.rfind("dic_", 0) == 0)
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         std::vector<std::string> types = {"INT", "TEXT", "DATETIME", "TIME", "DATE", "FLOAT", "BOOL", "KEY"};
@@ -635,7 +660,13 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
                 inCorrectType = false;
                 continue;
             }
-        if(newType == "KEY") newType = "INT"; //ALTER TABLE `kartofle` ADD CONSTRAINT `rel_odmiana` FOREIGN KEY (`odmiana`) REFERENCES `odmiany`(`ID`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+        
+        bool isKey = false;
+        if(newType == "KEY")
+        {
+            newType = "INT UNSIGNED";
+            isKey = true;
+        }
 
         if(inCorrectType) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Incorrect type\"}");
@@ -655,6 +686,25 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table ,"` CHANGE `old_", name ,"` `old_", newName,"` ", newType ," ;"})) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
+        if(isKey)
+        {
+            std::string query = "SELECT * FROM information_schema.key_column_usage WHERE constraint_schema = 'db_" + SINs[sin].db + "' AND table_name = '" + table + "' AND REFERENCED_TABLE_NAME IS NOT NULL AND COLUMN_NAME = '" + newName + "'";
+            mysql_query(&sql, query.c_str());
+            sql_response = mysql_store_result(&sql);
+            
+            std::string ConName, ref_table;
+            while ((sql_row = mysql_fetch_row(sql_response)) != NULL)
+            {
+                ConName = sql_row[2];
+                ref_table = sql_row[10];
+            }
+
+            if(!exec_NOquery(&sql, {"ALTER TABLE `", table,"` DROP CONSTRAINT `", ConName,"`;"}, true)) 
+                return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table7\"}");
+            if(!exec_NOquery(&sql, {"ALTER TABLE `", table,"` ADD CONSTRAINT `ref_", newName,"_", table ,"` FOREIGN KEY (`", newName,"`) REFERENCES `", ref_table,"`(`ID`) ON DELETE RESTRICT ON UPDATE RESTRICT;"}, true)) 
+                return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table7\"}");
+        }
+
         std::string query = "SELECT * FROM `" + table + "` ORDER BY `ID` ;";
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
@@ -668,9 +718,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             std::string temp = std::string(sql_fil[i].name);
             if(temp == "ID") 
                 continue;
-            stm_insert += ", NEW." + temp + ", NULL";
-            stm_update += ", NEW." + temp + ", OLD." + temp;
-            stm_delete += ", NULL, OLD." + temp;
+            stm_insert += ", NEW.`" + temp + "`, NULL";
+            stm_update += ", NEW.`" + temp + "`, OLD.`" + temp + "`";
+            stm_delete += ", NULL, OLD.`" + temp + "`";
         }
 
         if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
@@ -690,6 +740,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_delete AFTER DELETE ON ", table, " FOR EACH ROW ", stm_delete, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
+
 
         mysql_close(&sql);
         return crow::response(crow::OK);
@@ -730,9 +781,17 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
 
+        if(table.rfind("dic_", 0) == 0 && name.rfind("dic_", 0) != 0) name = "dic_" + name;
+
         if(!exec_NOquery(&sql, {"RENAME TABLE `db_", SINs[sin].db ,"`.`", table ,"` TO `db_", SINs[sin].db ,"`.`", name ,"`;"})) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
-        
+
+        if(table.rfind("dic_", 0) == 0)
+        {
+            mysql_close(&sql);
+            return crow::response(crow::OK);
+        }
+
         if(!exec_NOquery(&sql, {"RENAME TABLE `db_", SINs[sin].db ,"`.`log_", table ,"` TO `db_", SINs[sin].db ,"`.`log_", name ,"`;"})) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
@@ -750,9 +809,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             std::string temp = std::string(sql_fil[i].name);
             if(temp == "ID") 
                 continue;
-            stm_insert += ", NEW." + temp + ", NULL";
-            stm_update += ", NEW." + temp + ", OLD." + temp;
-            stm_delete += ", NULL, OLD." + temp;
+            stm_insert += ", NEW.`" + temp + "`, NULL";
+            stm_update += ", NEW.`" + temp + "`, OLD.`" + temp + "`";
+            stm_delete += ", NULL, OLD.`" + temp + "`";
         }
 
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
@@ -808,7 +867,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
-        if (isSystemTable(table))
+        if (isSystemTable(table) || table.rfind("dic_", 0) == 0)
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
@@ -816,9 +875,21 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
+        std::string sqlError;
 
-        if(!exec_NOquery(&sql, {"ALTER TABLE `", table,"` DROP `", name,"`;"})) 
-            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+        if(!exec_NOquery(&sql, {"ALTER TABLE `", table,"` DROP `", name,"`;"}, false, false, &sqlError)) 
+        {
+            if(sqlError.find("needed in a foreign key constraint") != std::string::npos)
+            {
+                if(!exec_NOquery(&sql, {"ALTER TABLE `", table,"` DROP CONSTRAINT `", sqlError.substr(19, sqlError.find("'", 20) - 19),"`;"})) 
+                    return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");        
+                
+                if(!exec_NOquery(&sql, {"ALTER TABLE `", table,"` DROP `", name,"`;"})) 
+                    return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+            }
+            else
+                return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+        }
         
         if(!exec_NOquery(&sql, {"ALTER TABLE `log_", table,"` DROP `old_", name,"`;"})) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
@@ -839,9 +910,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             std::string temp = std::string(sql_fil[i].name);
             if(temp == "ID") 
                 continue;
-            stm_insert += ", NEW." + temp + ", NULL";
-            stm_update += ", NEW." + temp + ", OLD." + temp;
-            stm_delete += ", NULL, OLD." + temp;
+            stm_insert += ", NEW.`" + temp + "`, NULL";
+            stm_update += ", NEW.`" + temp + "`, OLD.`" + temp + "`";
+            stm_delete += ", NULL, OLD.`" + temp + "`";
         }
 
         if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) 
@@ -908,8 +979,6 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"DROP TABLE `log_", table,"`;"})) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        exec_NOquery(&sql, {"START TRANSACTION"});
-
         if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
         
@@ -919,6 +988,91 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
 
+        mysql_close(&sql);
+        return crow::response(crow::OK);
+    });
+
+    CROW_ROUTE(app, "/tables/Dictionaries")
+    .methods(crow::HTTPMethod::POST)
+    ([&](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if(!body) 
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+
+        std::string sin;
+
+        try
+        {
+            sin     = parseStr(body["sin"].s());
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+        }
+
+        if(!checkSIN(sin, req))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
+        std::string response = "";
+
+        mysql_query(&sql, "SHOW TABLES;");
+        sql_response = mysql_store_result(&sql);
+
+        while ((sql_row = mysql_fetch_row(sql_response)) != NULL)
+        {
+            std::string temp = sql_row[0];
+            if (!isSystemTable(temp))
+                response += temp + ",";
+        }
+
+        if(response.length() > 1)
+            response[response.length() - 1] = ' ';
+
+        mysql_close(&sql);
+        return crow::response(crow::OK, "{\"tables\": \"" + response +"\"}");
+    });
+
+    CROW_ROUTE(app, "/tables/DictionariesAdd")
+    .methods(crow::HTTPMethod::PUT)
+    ([&](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if(!body) 
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+
+        std::string name, sin;
+
+        try
+        {
+            name    = parseStr(body["name"].s());
+            sin     = parseStr(body["sin"].s());
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+        }
+
+        if (isSystemTable(name))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid name\"}");
+
+        if(!checkSIN(sin, req))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
+        mysql_query(&sql, "START TRANSACTION;");
+
+        if(!exec_NOquery(&sql, {"CREATE TABLE `dic_", name ,"`(ID INT UNSIGNED NOT NULL AUTO_INCREMENT, value TEXT NOT NULL, PRIMARY KEY(ID));"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
+        mysql_query(&sql, "COMMIT;");
         mysql_close(&sql);
         return crow::response(crow::OK);
     });

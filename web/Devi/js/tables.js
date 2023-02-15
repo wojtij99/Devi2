@@ -66,7 +66,6 @@ function getTable()
                         case "DATETIME":type = "datetime-local"; break;
                         case "FLOAT":   type = "number' step='any'"; break; //type = "number' step='0.01'";
                         case "BOOL":    type = "checkbox"; break;
-                    
                         default: break;
                     }
                     

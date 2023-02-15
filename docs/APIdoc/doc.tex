@@ -103,6 +103,7 @@ Allowed types:
     \item DATE - date
     \item FLOAT - floating point number
     \item BOOL - true/false value
+    \item KEY - key for relations with other table
 \end{itemize}
 \textbf{\color{redText} METHOD: } \textbf{PUT} \\
 \textbf{\color{redText} URL parameters} \\
@@ -111,6 +112,8 @@ Allowed types:
 \textbf{name: } column name\\
 \textbf{type: } column type.\\
 \textbf{SIN: } SIN number\\
+\textbf{*reference: } name table of reference. Only for KEY \\
+\textbf{*} - optional \\
 \textbf{\color{redText} Return: } NULL
 
 \subsection{/tables/<table>/insert}
@@ -221,5 +224,10 @@ Delete table. \\
 \textbf{\color{redText} Body parameters} \\
 \textbf{SIN: } SIN number\\
 \textbf{\color{redText} Return: } NULL
+
+\section{Dictionary tables}
+Tables used to 
+\subsection{/tables/Dictionaries}
+\subsection{/tables/DictionariesAdd}
 
 \end{document}

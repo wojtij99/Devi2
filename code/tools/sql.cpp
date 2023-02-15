@@ -16,7 +16,7 @@ bool devi::sql_start(MYSQL* sql, std::string db_name, std::string user, std::str
     return true;
 }
 
-bool devi::exec_NOquery(MYSQL* sql,std::initializer_list<std::string> _commnd,  bool rollback, bool closeFlag)
+bool devi::exec_NOquery(MYSQL* sql,std::initializer_list<std::string> _commnd,  bool rollback, bool closeFlag,  std::string* _error)
 {
     std::string command;
     for (std::string part : _commnd)
@@ -28,7 +28,13 @@ bool devi::exec_NOquery(MYSQL* sql,std::initializer_list<std::string> _commnd,  
             mysql_query(sql, "ROLLBACK;");
 
         #if DEBUG_MODE == true
+            std::string err = mysql_error(sql);
             std::cout << command << std::endl << mysql_error(sql) << std::endl;
+            if(_error != nullptr)
+                *_error = err;
+        #elif
+            if(_error != nullptr)
+                *_error = mysql_error(sql);
         #endif
 
         if(closeFlag)
