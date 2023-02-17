@@ -68,7 +68,7 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
     .methods(crow::HTTPMethod::POST)
     ([](const crow::request& req){
         auto body = crow::json::load(req.body);
-        std::cout << req.remote_ip_address << std::endl;
+        //std::cout << req.remote_ip_address << std::endl;
 
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
@@ -131,7 +131,7 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         std::stringstream command;
         command << "SELECT id FROM `system_users` WHERE `name` = '" << user << "' AND `pass` = '" << pass << "' ;";
 
-        std::cout << command.str() << std::endl;
+        //std::cout << command.str() << std::endl;
         mysql_query(&sql, command.str().c_str());
         sql_response = mysql_store_result(&sql);
 

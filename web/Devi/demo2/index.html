@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEVI 2.0</title>
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/APIconnection.js"></script>
+    <script src="js/login.js"></script>
+    <script src="js/cookies.js"></script>
+    <script>
+        if(isLogged())
+        {
+            window.location.replace("main.html");
+        }
+    </script>
+</head>
+<body>
+    <main>
+        <section id="login">
+            <label for="db">Baza danych: </label>
+            <input type="text" name="db" id="db"> <br>
+            <label for="user">Login: </label>
+            <input type="text" name="user" id="user"> <br>
+            <label for="pass">Hasło: </label>
+            <input type="password" name="pass" id="pass"> <br>
+            <button onclick="login()">LOGIN</button>
+            <div id="loginError"></div>
+        </section>
+    </main>
+</body>
+</html>

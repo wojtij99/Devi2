@@ -2,42 +2,8 @@
 #include <mysql/mysql.h>
 #include "../tools/sql.hpp"
 #include "../tools/sin.hpp"
+#include "../tools/tools.hpp"
 #include <map>
-
-bool isSystemTable(std::string _table)
-{
-    if (_table.rfind("system_", 0) != 0 && _table.rfind("log_",0) != 0) return false;
-    return true;
-}
-
-void getURL_param(const crow::request& _req, std::string _key, std::function<void(char*)> _succes)
-{
-    char* value = _req.url_params.get(_key);
-    if(value == nullptr) throw 1;
-    else _succes(value);
-}
-
-bool is_number(const std::string& s)
-{
-    return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
-}
-
-std::string urlDecode(std::string SRC) 
-{
-    std::string ret;
-    char ch;
-    int i, ii;
-    for (i=0; i<SRC.length(); i++) {
-        if (SRC[i]=='%') {
-            sscanf(SRC.substr(i+1,2).c_str(), "%x", &ii);
-            ch=static_cast<char>(ii);
-            ret+=ch;
-            i=i+2;
-        } 
-        else ret+=SRC[i];
-    }
-    return (ret);
-}
 
 void devi::Tables(crow::App<crow::CORSHandler>& app)
 {
@@ -560,6 +526,10 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         {
             return crow::response(crow::BAD_REQUEST, "Invalid query");
         }
+
+        std::cout << "Q: " << query_p << std::endl;
+
+
 
         std::string limit_str = "";
 

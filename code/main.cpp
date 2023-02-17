@@ -9,6 +9,8 @@
 #include "tools/sql.hpp"
 #include "settings.h"
 #include "tools/sin.hpp"
+#include "tools/tools.hpp"
+#include "search/search.hpp"
 
 #include <boost/format.hpp>
 
@@ -50,10 +52,17 @@ int main()
         return  result.str();
     });
 
+    CROW_ROUTE(app, "/teapot")
+    ([&](){
+        auto page = crow::mustache::load_text("teapot.html");
+        return page;
+    });
+
     devi::Admin(app);
     devi::Client(app);
     devi::SIN(app);
     devi::Tables(app);
+    devi::Search(app);
     
     app.port(API_PORT).multithreaded().run();
     return 0;
