@@ -5,10 +5,11 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEVI 2.0</title>
-    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/login.css">
     <script src="js/APIconnection.js"></script>
     <script src="js/login.js"></script>
     <script src="js/cookies.js"></script>
+    <script src="js/jquery-3.6.3.min.js"></script>
     <script>
         if(isLogged())
         {
@@ -17,17 +18,31 @@
     </script>
 </head>
 <body>
-    <main>
-        <section id="login">
-            <label for="db">Baza danych: </label>
-            <input type="text" name="db" id="db"> <br>
-            <label for="user">Login: </label>
-            <input type="text" name="user" id="user"> <br>
-            <label for="pass">Hasło: </label>
-            <input type="password" name="pass" id="pass"> <br>
-            <button onclick="login()">LOGIN</button>
+    <section class="login-page">
+        <section class="form">
+          <section class="register-form acrylic formPanel">
+            <span>Sign Up</span>
+            <input type="text" placeholder="Email"/>
+            <input type="password" placeholder="Password"/>
+            <button id="SignUp">Go</button>
+            <p class="message"><a href="#">I have Account</a></p>
+          </section>
+          <section class="login-form acrylic formPanel">
+            <span>Login to your account</span>
+            <input type="text" name="db" id="db" placeholder="Company"/>
+            <input type="text" name="user" id="user" placeholder="Login"/>
+            <input type="password" name="pass" id="pass" placeholder="Password"/>
+            <button onclick="login()" id="SignIn">Login</button>
+            <p class="message"><a href="#">Create Account</p>
             <div id="loginError"></div>
+          </section>
         </section>
-    </main>
+    </section>
+
+    <script>
+        $('.message a').click(function(){
+            $('.formPanel').animate({height: "toggle", opacity: "toggle"}, "slow");
+        });
+    </script>
 </body>
 </html>

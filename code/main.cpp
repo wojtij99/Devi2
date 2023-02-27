@@ -54,8 +54,9 @@ int main()
 
     CROW_ROUTE(app, "/teapot")
     ([&](){
-        auto page = crow::mustache::load_text("teapot.html");
-        return page;
+        auto page = crow::mustache::load("error.html");
+        crow::mustache::context ctx ({{"number", "418"}, {"text", "Processing HTCPCP requests from outside the local network is disabled."}});
+        return crow::response(418, page.render_string(ctx));
     });
 
     devi::Admin(app);

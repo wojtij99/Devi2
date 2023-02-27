@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teapot</title>
+
+    <style>
+        body{
+            background-color: rgb(2, 88, 158);
+        }
+        main
+        {
+            margin: 7% auto 0;
+            width: 25%;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 30px;
+        }
+        #error
+        {
+            color: red;
+            margin: 0px auto;
+            font-weight: bolder;
+            font-size: 50px;
+        }
+        #text
+        {
+            font-weight: bold;
+            font-size: 30px;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <section id="error">ERROR {{number}}</section>
+        <section id="text">I'm teapot.</section> 
+        <p>{{text}}</p>
+    </main>
+</body>
+</html>

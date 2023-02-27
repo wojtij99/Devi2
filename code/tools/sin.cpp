@@ -2,6 +2,7 @@
 //#include <boost/format.hpp>
 #include <mysql/mysql.h>
 #include "../tools/sql.hpp"
+#include "../tools/sha1.hpp"
 
 const std::string currentDateTime() 
 {
@@ -86,6 +87,8 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
+        if(user.find('\'') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (') in user\"}");
+        if(db.find('\'') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (') in DB\"}");
 
         for(auto _s : SINs)
         {
@@ -123,13 +126,16 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid haeder\"}");
         }
 
+        SHA1 checksum;
+        checksum.update(pass);
+
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB'}");
 
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
         std::stringstream command;
-        command << "SELECT id FROM `system_users` WHERE `name` = '" << user << "' AND `pass` = '" << pass << "' ;";
+        command << "SELECT id FROM `system_users` WHERE `name` = '" << user << "' AND `pass` = '" << checksum.final() << "' ;";
 
         //std::cout << command.str() << std::endl;
         mysql_query(&sql, command.str().c_str());

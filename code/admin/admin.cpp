@@ -1,12 +1,14 @@
 #include "admin.hpp"
 #include "../tools/sql.hpp"
+#include "../tools/sha1.hpp"
+#include "../tools/tools.hpp"
 #include <mysql/mysql.h>
 
-void devi::Admin(crow::App<crow::CORSHandler>& app)
+void devi::Admin(crow::App<crow::CORSHandler> &app)
 {
     CROW_ROUTE(app, "/admin/addNewCompany")
-    .methods(crow::HTTPMethod::PUT)
-    ([&](const crow::request& req){
+        .methods(crow::HTTPMethod::PUT)([&](const crow::request &req)
+                                        {
         auto body = crow::json::load(req.body);
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
@@ -25,6 +27,15 @@ void devi::Admin(crow::App<crow::CORSHandler>& app)
         {
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
+
+        if(key.find('\'') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid key\"}");
+        if(name.find('\'') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (') in name\"}");
+        if(email.find('\'') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (') in email\"}");
+        if(user.find('\'') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (') in user\"}");
+
+        SHA1 checksum;
+        checksum.update(pass);
+        std::string hashPass = checksum.final();
 
         MYSQL sql;
         if(!devi::sql_start(&sql)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
@@ -51,7 +62,7 @@ void devi::Admin(crow::App<crow::CORSHandler>& app)
 
         mysql_query(&sql, "START TRANSACTION;");
 
-        if(!exec_NOquery(&sql, {"CREATE DATABASE db_", name ," DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;"}, true))
+        if(!exec_NOquery(&sql, {"CREATE DATABASE `db_", name ,"` DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;"}, true))
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create DB\"}");
 
         if(!exec_NOquery(&sql, {"INSERT INTO `companies` VALUES(NULL,'", name, "', '", email, "')"}, true))
@@ -63,11 +74,10 @@ void devi::Admin(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"CREATE TABLE system_users(ID INT NOT NULL AUTO_INCREMENT, name TEXT NOT NULL, pass TEXT NOT NULL, PRIMARY KEY(ID));"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't init DB\"}");
 
-        if(!exec_NOquery(&sql, {"INSERT INTO system_users VALUES(NULL, '", user, "', '", pass, "');"}, true)) 
+        if(!exec_NOquery(&sql, {"INSERT INTO system_users VALUES(NULL, '", user, "', '", hashPass, "');"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't insert user to DB\"}");
 
         mysql_query(&sql, "COMMIT;");
         mysql_close(&sql);
-        return crow::response(crow::OK);
-    });
+        return crow::response(crow::OK); });
 }

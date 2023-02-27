@@ -50,3 +50,36 @@ std::vector<std::string> devi::split(std::string _str, std::string _separator)
 
     return result;
 }
+
+std::string devi::toUpper(std::string _str)
+{
+    std::string result;
+
+    for(char c : _str)
+        result += std::toupper(c);
+
+    return result;
+}
+
+std::string devi::toLower(std::string _str)
+{
+    std::string result;
+
+    for(char c : _str)
+        result += std::tolower(c);
+
+    return result;
+}
+
+std::string devi::serialize(std::string _str, char _c)
+{
+    std::string result = "";
+
+    for(char c : _str)
+    {
+        if(c == _c) result += '\\';
+        result += c;
+    }
+
+    return result;
+}

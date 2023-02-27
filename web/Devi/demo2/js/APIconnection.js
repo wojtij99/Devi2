@@ -1,3 +1,5 @@
+var urlRoot = "http://localhost:3001";
+
 async function postData(_method = 'POST', _url = '', _data = {}) 
 {
 	const response = await fetch(_url, {

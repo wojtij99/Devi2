@@ -71,6 +71,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
+        if(name.find('`') != std::string::npos)
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in name\"}");
+
         if (isSystemTable(name))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid name\"}");
 
@@ -126,6 +129,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
+        if(name.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in user\"}");
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
+
         if (isSystemTable(table) || table.rfind("dic_", 0) == 0)
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
@@ -156,7 +162,8 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
             try
             {
-                ref_table = parseStr(body["references"].s());
+                ref_table = parseStr(body["reference"].s());
+                if(ref_table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in reference\"}");
             }
             catch(const std::runtime_error& e)
             {
@@ -248,6 +255,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         std::string sin;
         table = urlDecode(table);
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
@@ -321,20 +329,20 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
-        std::string sin, column, value;
+        std::string sin, value;
+        crow::json::rvalue data;
         table = urlDecode(table);
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
             sin     = parseStr(body["sin"].s());
+            data    = body["data"];
         }
         catch(const std::runtime_error& e)
         {
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
-
-        if(column == "ID")
-            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid column\"}");
 
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
@@ -359,11 +367,11 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             i++;
         }
 
-        for(auto b : body)
+        for(auto b : data)
         {
-            if(b.key() == "sin" || b.key() == "ID") continue;
+            if(b.key() == "ID") continue;
             if(values.find(b.key()) == values.end())
-                return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+                return crow::response(crow::BAD_REQUEST, "{\"response\":\"Column `" + (std::string)b.key() + "` does not exist in this table \"}");
             values[b.key()] = b.s();
         }
         
@@ -393,6 +401,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         std::string sin;
         table = urlDecode(table);
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
@@ -424,11 +433,17 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
     CROW_ROUTE(app, "/tables/<string>/select/<int>")
     .methods(crow::HTTPMethod::POST)
     ([&](const crow::request& req, std::string table, int id){
+#if ENABLE_SELECT_ONE == false
+        return crow::response(crow::NOT_IMPLEMENTED);
+#elif
         auto body = crow::json::load(req.body);
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
+
+        table = urlDecode(table);
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
@@ -470,6 +485,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         mysql_close(&sql);
         return crow::response(crow::OK, result);
+#endif
     });
 
     CROW_ROUTE(app, "/tables/<string>/select/all")
@@ -480,7 +496,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
+        crow::json::rvalue queryJ;
         table = urlDecode(table);
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
@@ -494,7 +512,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
 
-        if (isSystemTable(table))
+        if (table.rfind("system_", 0) == 0)
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid table\"}");
 
         MYSQL sql;
@@ -512,13 +530,12 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             keys[sql_row[6]] = sql_row[10];
 
         int limit = 0, page = 0;
-        std::string query_p = "", orderBy = "ID", orderType = "ASC";
+        std::string orderBy = "ID", orderType = "ASC";
 
         try
         {
             try {getURL_param(req, "limit", [&](char* v) { (is_number(v)) ? limit = std::atoi(v) : limit = 0; }); } catch(int e) {;}
             try {getURL_param(req, "page", [&](char* v) { (is_number(v)) ? page = std::atoi(v) : page = 0; });} catch(int e) {;}
-            try {getURL_param(req, "query", [&](char* v) { query_p = v; });} catch(int e) {;}
             try {getURL_param(req, "orderBy", [&](char* v) { (v == "") ? orderBy = v : orderBy = "ID"; });} catch(int e) {;}
             try {getURL_param(req, "orderType", [&](char* v) { (v == "") ? orderType = v : orderType = "ASC"; });} catch(int e) {;}
         }
@@ -527,15 +544,54 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "Invalid query");
         }
 
-        std::cout << "Q: " << query_p << std::endl;
-
-
+        if(toUpper(orderType) != "ASC" && toUpper(orderType) != "DESC")
+            return crow::response(crow::BAD_REQUEST, "Wrong order type");
 
         std::string limit_str = "";
 
         if(limit) limit_str = "LIMIT " + std::to_string(page * limit) + " , " + std::to_string(limit);
 
-        query = "SELECT * FROM `" + table + "` ORDER BY `" + orderBy + "` " + orderType + " " + limit_str + " ;";
+        std::string where = "";
+        try
+        {
+            queryJ = body["query"];
+        }
+        catch(std::runtime_error& e)
+        {
+            where = "1";
+        }
+        
+        if(where != "1")
+        {
+            std::string query = "DESCRIBE `" + table + "`;";
+            mysql_query(&sql, query.c_str());
+            sql_response = mysql_store_result(&sql);
+
+            std::unordered_map<std::string, std::string> values;
+            while ((sql_row = mysql_fetch_row(sql_response)) != NULL)
+            {
+                values[sql_row[0]] = "";
+            }
+
+            for(auto b : queryJ)
+            {
+                if(values.find(b.key()) == values.end())
+                    return crow::response(crow::BAD_REQUEST, "{\"response\":\"Column `" + (std::string)b.key() + "` does not exist in this table \"}");
+                values[b.key()] = b.s();
+            }
+
+            for(auto s: values) 
+            {
+                if(s.second == "") continue;
+                where += "`" + s.first + "` LIKE '%" + s.second + "%' AND ";
+            }
+
+            where.replace(where.length() - 4, 4, "");
+        }
+
+        //std::cout << where << std::endl;
+
+        query = "SELECT * FROM `" + table + "` WHERE " + where + " ORDER BY `" + orderBy + "` " + orderType + " " + limit_str + " ;";
         //std::cout << query_p << std::endl;
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
@@ -598,6 +654,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         std::string sin, name, newName, newType;
         table = urlDecode(table);
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
@@ -610,6 +667,8 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         {
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
+
+        if(name.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in name\"}");
 
         if(name == "ID")
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid name\"}");
@@ -725,6 +784,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         std::string sin, name;
         table = urlDecode(table);
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
@@ -736,6 +796,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
+        if(name.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in name\"}");
         if(name == "ID")
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid name\"}");
 
@@ -820,6 +881,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         std::string sin, name;
         table = urlDecode(table);
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
@@ -831,6 +893,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
+        if(name.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in name\"}");
         if(name == "ID")
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid name\"}");
 
@@ -921,6 +984,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         std::string sin;
         table = urlDecode(table);
+        if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
@@ -962,7 +1026,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         return crow::response(crow::OK);
     });
 
-    CROW_ROUTE(app, "/tables/Dictionaries")
+    /*CROW_ROUTE(app, "/tables/Dictionaries")
     .methods(crow::HTTPMethod::POST)
     ([&](const crow::request& req){
         auto body = crow::json::load(req.body);
@@ -1005,7 +1069,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         mysql_close(&sql);
         return crow::response(crow::OK, "{\"tables\": \"" + response +"\"}");
-    });
+    });*/
 
     CROW_ROUTE(app, "/tables/DictionariesAdd")
     .methods(crow::HTTPMethod::PUT)
@@ -1026,6 +1090,7 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
         }
 
+        if(name.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in name\"}");
         if (isSystemTable(name))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid name\"}");
 

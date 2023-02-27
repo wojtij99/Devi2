@@ -136,7 +136,8 @@ Update row. \\
 \textbf{columnID: } column ID\\
 \textbf{\color{redText} Body parameters} \\
 \textbf{SIN: } SIN number\\
-\textbf{Name of cell you update is name of parameter}\\
+\textbf{data: } assoc array key is named like column\\
+%\textbf{Name of cell you update is name of parameter}\\
 \textbf{\color{redText} Return: } NULL
 
 \subsection{/tables/<table>/delete/<columnID>}
@@ -172,6 +173,9 @@ Select all row from table. \\
 \textbf{\color{redText} Query parameters} \\
 \textbf{*limit: } records per page \\
 \textbf{*page: } page number \\
+\textbf{*orderBy: } column name \\
+\textbf{*orderType: } ASC/DESC \\
+\textbf{*query: } array: key - column name; value - your parameter \\
 \textbf{*} - optional \\
 \textbf{\color{redText} Body parameters} \\
 \textbf{SIN: } SIN number\\
@@ -225,9 +229,44 @@ Delete table. \\
 \textbf{SIN: } SIN number\\
 \textbf{\color{redText} Return: } NULL
 
-\section{Dictionary tables}
-Tables used to 
-\subsection{/tables/Dictionaries}
+%\subsection{/tables/Dictionaries}
 \subsection{/tables/DictionariesAdd}
+\textbf{\color{redText} Description} \\
+Add dictionares table. \\
+\textbf{\color{redText} METHOD: } \textbf{PUT} \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } table name\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL
 
+\section{Search}
+\subsection{/search/<phrase>}
+\textbf{\color{redText} Description} \\
+Search phrase in all tables. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{phrase: } phrase\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } \\
+Returning array named as table contaning data like /tables/<table>/select/all
+
+\section{Client}
+Commands for managing client account
+\subsection{/client/changeName}
+\textbf{\color{redText} Description} \\
+Changing name for your. \textbf{After executing this command you will be logged out!} \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } new name for your account\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL\\
+
+\subsection{/client/changePass}
+Changing password for your. \textbf{After executing this command you will be logged out!} \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{pass: } new password for your account\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL\\
 \end{document}

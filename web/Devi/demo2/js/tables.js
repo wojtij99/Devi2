@@ -29,11 +29,10 @@ function getTable()
 		sin:   getCookie("sin")
 	};
 
-    var queruyStr = "";
     //TODO: Query string 
     //TODO: PAGE & LIMIT
 	
-    postData('POST', 'http://localhost:3001/tables/' + product + '/select/all?' + queruyStr, toSend)
+    postData('POST', 'http://localhost:3001/tables/' + product + '/select/all', toSend)
 	.then((data) => {
         console.log(data);
         var result ="";
@@ -156,24 +155,28 @@ function updateData(id)
 		sin:   getCookie("sin")
 	};
 
+    var data = {};
+
     for (let i = 1; document.getElementById("L" + i) != null; i++) 
     {
         var name = document.getElementById("L" + i).innerHTML;
         if(document.getElementById(name + id).type != "checkbox")
-            toSend[name] = document.getElementById(name + id).value;
+            data[name] = document.getElementById(name + id).value;
         else 
-            toSend[name] = document.getElementById(name + id).checked ? "1" : "0";
+            data[name] = document.getElementById(name + id).checked ? "1" : "0";
     }
-    console.log(toSend);
 
-    
+    toSend['data'] = data;
+
+    //console.log(toSend);
+
     postData('POST', 'http://localhost:3001/tables/' + product + '/update/' + id, toSend)
 	.then((data) => {
-		console.log(data);
+		//console.log(data);
         location.reload();
 	})
     .catch((error) => {
-        console.log(error);
+        //console.log(error);
         location.reload();
     });
     
