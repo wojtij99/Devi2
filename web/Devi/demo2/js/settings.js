@@ -24,7 +24,7 @@ function getTables()
 		"sin":   getCookie("sin")
 	};
 
-    postData('POST', 'http://localhost:3001/tables', toSend)
+    postData('POST', urlRoot + '/tables', toSend)
 	.then((data) => {
         var result = "<table><tr><th>Nazwa</th><th>Opcje</th></tr>";
         if(data['tables'] != "")
@@ -54,7 +54,7 @@ function addTable()
         "name": document.getElementById("addTable").value
 	};
     
-    postData('PUT', 'http://localhost:3001/tables/add', toSend)
+    postData('PUT', urlRoot + '/tables/add', toSend)
 	.then((data) => {
 		console.log(data);
         location.reload();
@@ -78,7 +78,7 @@ function getTable()
 		sin:   getCookie("sin")
 	};
 	
-    postData('POST', 'http://localhost:3001/tables/' + product + '/select/all', toSend)
+    postData('POST', urlRoot + '/tables/' + product + '/select/all', toSend)
 	.then((data) => {
         var result = "";
         var select = "";
@@ -121,7 +121,7 @@ function addColumn()
 		sin:   getCookie("sin")
 	};
 	
-    postData('PUT', 'http://localhost:3001/tables/' + product + '/addColumn', toSend)
+    postData('PUT', urlRoot + '/tables/' + product + '/addColumn', toSend)
 	.then((data) => {
 		console.log(data);
         location.reload();
@@ -147,7 +147,7 @@ function alterColumn(_name)
 		sin:   getCookie("sin")
 	};
 	
-    postData('POST', 'http://localhost:3001/tables/' + product + '/alter', toSend)
+    postData('POST', urlRoot + '/tables/' + product + '/alter', toSend)
 	.then((data) => {
 		console.log(data);
         location.reload();
@@ -171,7 +171,7 @@ function dropColumn(_name)
 		sin:   getCookie("sin")
 	};
 	
-    postData('DELETE', 'http://localhost:3001/tables/' + product + '/dropColumn', toSend)
+    postData('DELETE', urlRoot + '/tables/' + product + '/dropColumn', toSend)
 	.then((data) => {
 		console.log(data);
         location.reload();
@@ -190,7 +190,7 @@ function renameTable(_name)
 		sin:   getCookie("sin")
 	};
 	
-    postData('POST', 'http://localhost:3001/tables/' + _name + '/rename', toSend)
+    postData('POST', urlRoot + '/tables/' + _name + '/rename', toSend)
 	.then((data) => {
 		console.log(data);
         location.reload();
@@ -208,7 +208,7 @@ function dropTable(_name)
 		sin:   getCookie("sin")
 	};
 	
-    postData('DELETE', 'http://localhost:3001/tables/' + _name + '/dropTable', toSend)
+    postData('DELETE', urlRoot + '/tables/' + _name + '/dropTable', toSend)
 	.then((data) => {
 		console.log(data);
         location.reload();

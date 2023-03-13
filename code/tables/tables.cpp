@@ -93,13 +93,13 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"CREATE TABLE `log_", name ,"`(ID INT UNSIGNED NOT NULL AUTO_INCREMENT,action TEXT, actionDT DATETIME NOT NULL, dataID INT, PRIMARY KEY(ID));"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_insert AFTER INSERT ON ", name, " FOR EACH ROW INSERT INTO log_", name, " VALUES(NULL, \"INSERT\", NOW(), NEW.ID); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", name, "_log_insert` AFTER INSERT ON `", name, "` FOR EACH ROW INSERT INTO `log_", name, "` VALUES(NULL, \"INSERT\", NOW(), NEW.ID); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_update AFTER UPDATE ON ", name, " FOR EACH ROW INSERT INTO log_", name, " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", name, "_log_update` AFTER UPDATE ON `", name, "` FOR EACH ROW INSERT INTO `log_", name, "` VALUES(NULL, \"UPDATE\", NOW(), NEW.ID); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_delete AFTER DELETE ON ", name, " FOR EACH ROW INSERT INTO log_", name, " VALUES(NULL, \"DELETE\", NOW(), OLD.ID); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", name, "_log_delete` AFTER DELETE ON `", name, "` FOR EACH ROW INSERT INTO `log_", name, "` VALUES(NULL, \"DELETE\", NOW(), OLD.ID); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
         mysql_query(&sql, "COMMIT;");
@@ -203,9 +203,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
 
-        std::string stm_insert = "INSERT INTO log_" + table + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
-                    stm_update = "INSERT INTO log_" + table + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
-                    stm_delete = "INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+        std::string stm_insert = "INSERT INTO `log_" + table + "` VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
+                    stm_update = "INSERT INTO `log_" + table + "` VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
+                    stm_delete = "INSERT INTO `log_" + table + "` VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
         MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
         for (int i = 0; i < mysql_num_fields(sql_response); i++) 
         {
@@ -217,22 +217,22 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             stm_delete += ", NULL, OLD.`" + temp + "`";
         }
 
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_insert`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_update;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_update`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table2\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_delete`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
         
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_insert AFTER INSERT ON ", table, " FOR EACH ROW ", stm_insert, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", table, "_log_insert` AFTER INSERT ON `", table, "` FOR EACH ROW ", stm_insert, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table4\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_update AFTER UPDATE ON ", table, " FOR EACH ROW ", stm_update, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", table, "_log_update` AFTER UPDATE ON `", table, "` FOR EACH ROW ", stm_update, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table5\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_delete AFTER DELETE ON ", table, " FOR EACH ROW ", stm_delete, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", table, "_log_delete` AFTER DELETE ON `", table, "` FOR EACH ROW ", stm_delete, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
 
         if(iskey)
@@ -738,9 +738,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
 
-        std::string stm_insert = "INSERT INTO log_" + table + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
-                    stm_update = "INSERT INTO log_" + table + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
-                    stm_delete = "INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+        std::string stm_insert = "INSERT INTO `log_" + table + "` VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
+                    stm_update = "INSERT INTO `log_" + table + "` VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
+                    stm_delete = "INSERT INTO `log_" + table + "` VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
         MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
         for (int i = 0; i < mysql_num_fields(sql_response); i++) 
         {
@@ -752,22 +752,22 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             stm_delete += ", NULL, OLD.`" + temp + "`";
         }
 
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_insert`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_update;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_update`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table2\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_delete`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
         
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_insert AFTER INSERT ON ", table, " FOR EACH ROW ", stm_insert, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", table, "_log_insert` AFTER INSERT ON `", table, "` FOR EACH ROW ", stm_insert, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table4\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_update AFTER UPDATE ON ", table, " FOR EACH ROW ", stm_update, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", table, "_log_update` AFTER UPDATE ON `", table, "` FOR EACH ROW ", stm_update, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table5\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_delete AFTER DELETE ON ", table, " FOR EACH ROW ", stm_delete, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", table, "_log_delete` AFTER DELETE ON `", table, "` FOR EACH ROW ", stm_delete, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
 
 
@@ -831,9 +831,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
 
-        std::string stm_insert = "INSERT INTO log_" + name + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
-                    stm_update = "INSERT INTO log_" + name + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
-                    stm_delete ="INSERT INTO log_" + name + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+        std::string stm_insert = "INSERT INTO `log_" + name + "` VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
+                    stm_update = "INSERT INTO `log_" + name + "` VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
+                    stm_delete = "INSERT INTO `log_" + name + "` VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
         MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
         for (int i = 0; i < mysql_num_fields(sql_response); i++) 
         {
@@ -850,22 +850,22 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         exec_NOquery(&sql, {"START TRANSACTION"});
 
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_insert`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_update;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_update`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table2\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_delete`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
         
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_insert AFTER INSERT ON ", name, " FOR EACH ROW ", stm_insert, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", name, "_log_insert` AFTER INSERT ON `", name, "` FOR EACH ROW ", stm_insert, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table4\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_update AFTER UPDATE ON ", name, " FOR EACH ROW ", stm_update, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", name, "_log_update` AFTER UPDATE ON `", name, "` FOR EACH ROW ", stm_update, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table5\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", name, "_log_delete AFTER DELETE ON ", name, " FOR EACH ROW ", stm_delete, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", name, "_log_delete` AFTER DELETE ON `", name, "` FOR EACH ROW ", stm_delete, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
 
         mysql_close(&sql);
@@ -934,9 +934,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         mysql_query(&sql, query.c_str());
         sql_response = mysql_store_result(&sql);
 
-        std::string stm_insert = "INSERT INTO log_" + table + " VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
-                    stm_update = "INSERT INTO log_" + table + " VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
-                    stm_delete = "INSERT INTO log_" + table + " VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
+        std::string stm_insert = "INSERT INTO `log_" + table + "` VALUES(NULL, \"INSERT\", NOW(), NEW.ID",
+                    stm_update = "INSERT INTO `log_" + table + "` VALUES(NULL, \"UPDATE\", NOW(), NEW.ID",
+                    stm_delete = "INSERT INTO `log_" + table + "` VALUES(NULL, \"DELETE\", NOW(), OLD.ID";
         MYSQL_FIELD* sql_fil = mysql_fetch_fields(sql_response);
         for (int i = 0; i < mysql_num_fields(sql_response); i++) 
         {
@@ -953,22 +953,22 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         exec_NOquery(&sql, {"START TRANSACTION"});
 
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_insert`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_update;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_update`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table2\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_delete`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
         
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_insert AFTER INSERT ON ", table, " FOR EACH ROW ", stm_insert, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", table, "_log_insert` AFTER INSERT ON `", table, "` FOR EACH ROW ", stm_insert, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table4\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_update AFTER UPDATE ON ", table, " FOR EACH ROW ", stm_update, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", table, "_log_update` AFTER UPDATE ON `", table, "` FOR EACH ROW ", stm_update, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table5\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TRIGGER ", SINs[sin].db,"_", table, "_log_delete AFTER DELETE ON ", table, " FOR EACH ROW ", stm_delete, "); "}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", table, "_log_delete` AFTER DELETE ON `", table, "` FOR EACH ROW ", stm_delete, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
 
         mysql_close(&sql);
@@ -1013,13 +1013,13 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"DROP TABLE `log_", table,"`;"})) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_insert;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_insert`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table1\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_update;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_update`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table2\"}");
         
-        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS ", SINs[sin].db,"_", table, "_log_delete;"}, true)) 
+        if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_delete`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
 
         mysql_close(&sql);

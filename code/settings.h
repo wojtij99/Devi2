@@ -1,10 +1,11 @@
 #define DEBUG_MODE true
+#define SERVER_MODE false
 
 #define SQL_HOST "127.0.0.1"
 #define SQL_NAME "mainDB"
-#if DEBUG_MODE == false
-    #define SQL_USER "API_MySQLuser"
-    #define SQL_PASS "jSmmwERr4i#G^O2vhP3J*pBayW%eFlZ7"
+#if SERVER_MODE == true
+    #define SQL_USER "admin"
+    #define SQL_PASS "B@nanaSQL"
     #define SQL_PORT 3306
 #else
     #define SQL_USER "root"

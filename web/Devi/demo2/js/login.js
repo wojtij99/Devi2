@@ -13,7 +13,7 @@ function login()
 		db:     document.getElementById("db").value
 	};
 
-	postData('POST', 'http://localhost:3001/getSIN', toSend)
+	postData('POST', urlRoot + '/getSIN', toSend)
 	.then((data) => {
 		document.getElementById("user").value = "";
 		document.getElementById("pass").value = "";
@@ -40,7 +40,7 @@ function logout()
 		sin:   getCookie("sin")
 	};
 
-	postData('DELETE', 'http://localhost:3001/dropSIN', toSend)
+	postData('DELETE', urlRoot + '/dropSIN', toSend)
 	.then((data) => {
 		logoutScript();
 	});

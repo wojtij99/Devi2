@@ -269,4 +269,25 @@ Changing password for your. \textbf{After executing this command you will be log
 \textbf{pass: } new password for your account\\
 \textbf{SIN: } SIN number\\
 \textbf{\color{redText} Return: } NULL\\
+
+\section{Sheet}
+\subsection{/sheet/<sheet>/update}
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{sheet: } sheet number\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{coord: } coordinate of cell\\
+\textbf{value: } cell value\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL\\
+
+\subsection{/sheet/<int>/update}
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{sheet: } sheet number\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } \\
+\textbf{data: } array contain calculated values from DB\\
+\textbf{sheet: } array contain all cells\\
 \end{document}

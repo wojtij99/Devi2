@@ -11,6 +11,7 @@
 #include "tools/sin.hpp"
 #include "tools/tools.hpp"
 #include "search/search.hpp"
+#include "sheet/sheet.hpp"
 
 #include <boost/format.hpp>
 
@@ -64,6 +65,7 @@ int main()
     devi::SIN(app);
     devi::Tables(app);
     devi::Search(app);
+    devi::Sheet(app);
     
     app.port(API_PORT).multithreaded().run();
     return 0;

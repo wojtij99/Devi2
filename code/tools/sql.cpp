@@ -32,7 +32,7 @@ bool devi::exec_NOquery(MYSQL* sql,std::initializer_list<std::string> _commnd,  
             std::cout << command << std::endl << mysql_error(sql) << std::endl;
             if(_error != nullptr)
                 *_error = err;
-        #elif
+        #else
             if(_error != nullptr)
                 *_error = mysql_error(sql);
         #endif

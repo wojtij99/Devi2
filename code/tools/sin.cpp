@@ -4,55 +4,6 @@
 #include "../tools/sql.hpp"
 #include "../tools/sha1.hpp"
 
-const std::string currentDateTime() 
-{
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
-    tstruct = *localtime(&now);
-    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
-
-    return buf;
-}
-
-std::vector<std::string> split(std::string _string, char _delimiter)
-{
-    std::vector<std::string> result;
-    std::string temp = "";
-
-    for(char c : _string)
-    {
-        if(c == _delimiter)
-        {
-            result.push_back(temp);
-            temp = "";
-            continue;
-        }
-        temp += c;
-    }
-    result.push_back(temp);
-
-    return result;
-}
-
-/*devi::dateTime_t convertDTstr2t(std::string _string)
-{
-    std::vector<std::string> temp = split(_string, '.');
-    std::vector<std::string> date = split(temp[0], '-');
-    std::vector<std::string> time = split(temp[1], ':');
-
-    devi::dateTime_t result =
-    {
-        std::stoi(date[0]),
-        std::stoi(date[1]),
-        std::stoi(date[2]),
-        std::stoi(time[0]),
-        std::stoi(time[1]),
-        std::stoi(time[2])
-    };
-    return result;
-}*/
-
 std::string generateSIN()
 {
     std::string result = "";
@@ -69,7 +20,6 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
     .methods(crow::HTTPMethod::POST)
     ([](const crow::request& req){
         auto body = crow::json::load(req.body);
-        //std::cout << req.remote_ip_address << std::endl;
 
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
@@ -90,54 +40,44 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         if(user.find('\'') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (') in user\"}");
         if(db.find('\'') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (') in DB\"}");
 
-        for(auto _s : SINs)
-        {
-            if(_s.second.expiredate - time(NULL) < 0)
-            {
-                SINs.erase(SINs.find(_s.first));
-                if(_s.second.user == user && _s.second.db == db)
-                    return crow::response(crow::GONE, "{\"response\":\"Your SIN is expired\"}");
-            }
-            else if(_s.second.user == user && _s.second.db == db)
-                return crow::response(crow::OK, "{\"sin\": \"" + _s.first +"\"}");
-        }
-
-        
-        /*for(auto _s : SINs)
-        {
-            if(_s.second.user == user && _s.second.db == db)
-            {
-                if(_s.second.expiredate - time(NULL) < 0)
-                {
-                    SINs.erase(SINs.find(_s.first));
-                    return crow::response(crow::GONE, "{\"response\":\"Your SIN is expired\"}");
-                }
-                return crow::response(crow::OK, "{\"sin\": \"" + _s.first +"\"}");
-            }
-        }*/
-
         try
         {
             user_agent = req.get_header_value("User-Agent");
-            //host = req.get_header_value("Host");
         }
         catch(const std::runtime_error& e)
         {
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid haeder\"}");
         }
 
+        std::vector<std::map<std::string, devi::sin_t>::iterator> toErase;
+        std::pair<crow::status, std::string> SINresponse = {crow::status::CONTINUE, ""};
+        for(auto _s : SINs)
+        {
+            if(_s.second.expiredate - time(NULL) < 0)
+            {
+                toErase.push_back(SINs.find(_s.first));
+                if(_s.second.user == user && _s.second.db == db) 
+                    SINresponse = {crow::GONE, "{\"response\":\"Your SIN is expired\"}"} ;
+                    //return crow::response(crow::GONE, "{\"response\":\"Your SIN is expired\"}");
+            }
+            else if(_s.second.user == user && _s.second.db == db)
+                if(_s.second.ip != host || _s.second.user_agent != user_agent) toErase.push_back(SINs.find(_s.first));
+                else SINresponse = {crow::OK, "{\"sin\": \"" + _s.first +"\"}"};
+                //return crow::response(crow::OK, "{\"sin\": \"" + _s.first +"\"}");
+        }
+
+        for(auto e : toErase) SINs.erase(e);
+        if(SINresponse.second != "") return crow::response(SINresponse.first, SINresponse.second);
+
         SHA1 checksum;
         checksum.update(pass);
-
         MYSQL sql;
         if(!devi::sql_start(&sql, "db_" + db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB'}");
-
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
         std::stringstream command;
         command << "SELECT id FROM `system_users` WHERE `name` = '" << user << "' AND `pass` = '" << checksum.final() << "' ;";
 
-        //std::cout << command.str() << std::endl;
         mysql_query(&sql, command.str().c_str());
         sql_response = mysql_store_result(&sql);
 
@@ -148,17 +88,12 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         }
 
         std::string sin;
-        do
-        {
-            sin = generateSIN();
-        } while (SINs.find(sin) != SINs.end());
+        do sin = generateSIN();
+        while (SINs.find(sin) != SINs.end());
         
-
-        sin_t sin_struct = {host, user_agent, user, db, time(NULL), time(NULL) + 5 * 60};
+        sin_t sin_struct = {host, user_agent, user, db, time(NULL), time(NULL) + EXPIRE_TIME};
 
         SINs[sin] = sin_struct;
-
-        //std::cout << host << " - " << user_agent << std::endl;
         return crow::response(crow::OK, "{\"sin\": \"" + sin +"\"}");
     }); 
 
@@ -186,6 +121,25 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         SINs.erase(SINs.find(sin));
         return crow::response(crow::OK);
     });
+
+#if DEBUG_MODE == true
+    CROW_ROUTE(app, "/logSIN")
+    .methods(crow::HTTPMethod::GET)
+    ([](const crow::request& req){
+        crow::json::wvalue res;
+        for(auto s : SINs)
+        {
+            res[s.first]["ip"] = s.second.ip;
+            res[s.first]["user_agent"] = s.second.user_agent;
+            res[s.first]["user"] = s.second.user;
+            res[s.first]["db"] = s.second.db;
+            res[s.first]["creationDT"] = s.second.creationDT;
+            res[s.first]["expiredate"] = s.second.expiredate;
+        }
+        res["time"] = time(NULL);
+        return crow::response(crow::OK, res);
+    });
+#endif
 }
 
 bool devi::checkSIN(std::string _sin, const crow::request& req)
@@ -196,7 +150,6 @@ bool devi::checkSIN(std::string _sin, const crow::request& req)
     try
     {
         user_agent = req.get_header_value("User-Agent");
-        //host = req.get_header_value("Host");
     }
     catch(const std::runtime_error& e)
     {
@@ -211,65 +164,6 @@ bool devi::checkSIN(std::string _sin, const crow::request& req)
         return false;
     }
 
-    SINs[_sin].expiredate = time(NULL) + 5 * 60;
+    SINs[_sin].expiredate = time(NULL) + EXPIRE_TIME;
     return true;
 }
-
-/*
-std::string devi::encrypt(std::string ip, std::string user_agent, std::string user, std::string db)
-{
-    std::string stage0 = ip + "|" + user_agent + "|" + user + "|" + db + "|" + currentDateTime();
-    
-    std::string stage1 = "";
-
-    for(char c : stage0)
-    {
-        std::string temp = (boost::format("%x") % (int)c).str();
-        //if(temp.length() == 2) 
-            ///temp = "00" + temp;
-        stage1 += temp;
-    }
-    srand(time(NULL));
-    char key[] = { '0','1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-
-    std::string stage2;
-    for(char c : stage1)
-    {
-        stage2 += c;
-        stage2 += key[rand() % 16];
-    }
-
-    std::string stage3 = "";
-    for(char c : stage2)
-        stage3 = c + stage3;
-
-    return stage3;
-}
-
-std::string devi::decrypt(std::string sin)
-{
-    std::string stage0 = "";
-    for(char c : sin)
-        stage0 = c + stage0;
-    
-    std::string stage1 = "";
-    bool cut = false;
-
-    for(char c : stage0)
-    {
-        if(!cut) stage1 += c;
-        cut = !cut;
-    }
-
-    std::cout << stage1 << std::endl;
-
-    std::string stage2 = "";
-    for(int i=0; i< stage1.length(); i+=2)
-    {
-        std::string byte = stage1.substr(i,2);
-        char chr = (char) (int)strtol(byte.c_str(), NULL, 16);
-        stage2.push_back(chr);
-    }
-    return stage2;
-}
-*/
