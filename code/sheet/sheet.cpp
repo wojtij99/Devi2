@@ -79,9 +79,9 @@ float aggregateFun(std::string _method, std::vector<std::string> _args, std::str
 
 void devi::Sheet(crow::App<crow::CORSHandler>& app) 
 {
-    CROW_ROUTE(app, "/sheet/<int>/update")
+    CROW_ROUTE(app, "/sheet/<string>/update")
     .methods(crow::HTTPMethod::POST)
-    ([&](const crow::request& req, int _sheet){
+    ([&](const crow::request& req, std::string _sheet){
         auto body = crow::json::load(req.body);
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
@@ -102,34 +102,50 @@ void devi::Sheet(crow::App<crow::CORSHandler>& app)
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
         
-        std::string sheet_s = "", line = "";
-        std::ifstream file("files/sheet/db_" + SINs[sin].db + "/sheet" + std::to_string(_sheet) + ".json");
-        if(!file.is_open()) 
-            return crow::response(crow::BAD_REQUEST, "{\"response\":\"This sheet not exist\"}");
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) throw MYSQL_CON_ERROR;
 
-        while(getline(file, line))
-            sheet_s += line;
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
 
-        if(sheet_s == "") sheet_s = "{}";
+        if(mysql_query(&sql, ("SELECT `JSON` FROM `system_sheets` WHERE `name` = " + _sheet + " ;").c_str()) != 0)
+        {
+            std::string err = mysql_error(&sql);
+            std::cout << "Q: " << "SELECT `JSON` FROM `system_sheets` WHERE `name` = " + _sheet + " ;" << " E: " << mysql_error(&sql) << std::endl;
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't get data\"}");
+        }
+        sql_response = mysql_store_result(&sql);
+        
+        std::cout << mysql_num_rows(sql_response) << std::endl;
+        std::string sheet_s = (mysql_num_rows(sql_response)) ? (std::string)((sql_row = mysql_fetch_row(sql_response))[0]) : "";
+        
+        bool isNew = false;
+        if(sheet_s == "") {sheet_s = "{}"; isNew = true;}
         auto sheetF = crow::json::load(sheet_s);
-        file.close();
+
         if(!sheetF) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid sheet\"}");
 
         crow::json::wvalue response = sheetF;
         response[coord] = value;
-
-        std::ofstream fileO("files/sheet/db_" + SINs[sin].db + "/sheet" + std::to_string(_sheet) + ".json");
-        fileO << response.dump();
-        fileO.close();
+        
+        if(!isNew)
+        { 
+            if(!exec_NOquery(&sql, {"UPDATE `system_sheets` SET `JSON`='" + response.dump() + "' WHERE `name` = " + _sheet + ";"}, false)) 
+                return crow::response(crow::CONFLICT, "{\"response\":\"Can't insert data\"}");
+        }
+        else if(!exec_NOquery(&sql, {"INSERT INTO `system_sheets` VALUES (NULL,'" + _sheet + "','" + response.dump() + "')"}, false)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't insert data\"}");
+        
+        mysql_close(&sql);
         //return crow::response(crow::OK, response);
         return crow::response(crow::OK);
         //return crow::response(crow::OK, std::to_string(aggregateFun(meth, "zamówienia", "cena(wKartoflach)", sin)));
     });
 
-    CROW_ROUTE(app, "/sheet/<int>/get")
+    CROW_ROUTE(app, "/sheet/<string>/get")
     .methods(crow::HTTPMethod::POST)
-    ([&](const crow::request& req, int _sheet){
+    ([&](const crow::request& req, std::string _sheet){
         auto body = crow::json::load(req.body);
         if(!body) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
@@ -148,17 +164,25 @@ void devi::Sheet(crow::App<crow::CORSHandler>& app)
         if(!checkSIN(sin, req))
             return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
         
-        std::string sheet_s = "", line = "";
-        std::ifstream file("files/sheet/db_" + SINs[sin].db + "/sheet" + std::to_string(_sheet) + ".json");
-        if(!file.is_open()) 
-            return crow::response(crow::BAD_REQUEST, "{\"response\":\"This sheet not exist\"}");
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) throw MYSQL_CON_ERROR;
 
-        while(getline(file, line))
-            sheet_s += line;
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
+
+        if(mysql_query(&sql, ("SELECT `JSON` FROM `system_sheets` WHERE `name` = " + _sheet + " ;").c_str()) != 0)
+        {
+            std::string err = mysql_error(&sql);
+            std::cout << "Q: " << "SELECT `JSON` FROM `system_sheets` WHERE `name` = " + _sheet + " ;" << " E: " << mysql_error(&sql) << std::endl;
+            throw INVALID_QUERY;
+        }
+        sql_response = mysql_store_result(&sql);
+        
+        std::string sheet_s = (sql_row = mysql_fetch_row(sql_response))[0];
+        mysql_close(&sql);
 
         if(sheet_s == "") sheet_s = "{}";
         auto sheetF = crow::json::load(sheet_s);
-        file.close();
         if(!sheetF) 
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid sheet\"}");
 
