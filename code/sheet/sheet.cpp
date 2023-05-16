@@ -22,10 +22,10 @@ float aggregateFun(std::string _method, std::vector<std::string> _args, std::str
     if(_args.size() == 0) throw INVALID_NUMS_OF_ARGS;
     if(_args[0][0] != '`' || _args[0][_args[0].length() - 1] != '`') throw IS_NOT_DB_FUNCTION;
 
-    const static std::vector<std::string> parameters = {"SUM", "AVG", "MAX", "MIN", "COUNT", "SUM_IF", "AVG_IF", "SUM_IFS", "AVG_IFS"};
+    const static std::vector<std::string> parameters = {"SUM", "AVG", "MAX", "MIN", "COUNT", "SUM_IF", "AVG_IF", "SUM_IFS", "AVG_IFS", "COUNT_IF", "COUNT_IFS"};
     const static std::vector<std::string> args1 = {"SUM", "AVG", "MAX", "MIN", "COUNT"};
-    const static std::vector<std::string> args2 = {"SUM_IF", "AVG_IF"};
-    const static std::vector<std::string> argsMult = {"SUM_IFS", "AVG_IFS"};
+    const static std::vector<std::string> args2 = {"SUM_IF", "AVG_IF", "COUNT_IF"};
+    const static std::vector<std::string> argsMult = {"SUM_IFS", "AVG_IFS", "COUNT_IFS"};
     // for(std::string p : parameters)
     //     if(p == _method) {isCorrectType = true; break;}
     // if(!isCorrectType) throw PARAMETER_OUT_OF_RANGE; 
@@ -38,7 +38,7 @@ float aggregateFun(std::string _method, std::vector<std::string> _args, std::str
 
     std::string meth_arg = "", table = "", where = "";
 
-    if(_method == "COUNT") 
+    if(_method == "COUNT" || _method == "COUNT_IFS") 
     {
         table = _args[0].substr(1, _args[0].length() - 2);
         meth_arg = "*";
@@ -52,7 +52,7 @@ float aggregateFun(std::string _method, std::vector<std::string> _args, std::str
 
     if(std::find(args2.begin(), args2.end(), _method) != args2.end())
     {
-        _method = _method.substr(0, 3);
+        _method = _method.substr(0, _method.find('_'));
 
         where = "WHERE " + meth_arg + _args[1];
     }
@@ -165,8 +165,6 @@ void devi::Sheet(crow::App<crow::CORSHandler>& app)
         crow::json::wvalue response;
         response["sheet"] = sheetF;
 
-        // CELI(AVG(`tab`.`col`) + (MIN(`tab`.`col`)) / COUNT(`tab`)) + [!1A12]
-        // CELI(AVG(`zamówienia`.`cena(wKartoflach)`) + (MIN(`zamówienia`.`cena(wKartoflach)`)) / COUNT(`zamówienia`)) + [!1A12]
         std::string parameters[] = {"SUM", "AVG", "MAX", "MIN", "COUNT"};
         std::map<std::string, float> func;
         for(auto s : sheetF)

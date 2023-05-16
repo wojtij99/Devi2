@@ -5,6 +5,8 @@
 \usepackage{xcolor}
 \usepackage{sectsty}
 \usepackage{tabularx}
+\usepackage{listings}
+\usepackage{verbatim}
 
 \definecolor{chapter_c}{rgb}{0.5, 0.0, 0.0}
 \definecolor{section_c}{rgb}{0.64, 0.0, 0.0}
@@ -14,6 +16,67 @@
 \chapterfont{\color{chapter_c}}
 \sectionfont{\color{section_c}}
 \subsectionfont{\color{subsection_c}}
+
+\definecolor{keycolor}{HTML}{569CD6}
+\definecolor{valuecolor}{HTML}{FF0000}
+
+\begin{comment}
+\lstdefinelanguage{js}{
+  keywords={type,image,changes, CMD, WORKDIR, EXPOSE, builders, commit},
+  keywordstyle=\color{keycolor}\bfseries,
+  keywords=[2]{test},
+  keywordstyle=[2]\color{valuecolor}\bfseries,
+  sensitive=false,
+  morecomment=[s]{/*}{*/}
+}
+\end{comment}
+
+\definecolor{delim}{RGB}{20,105,176}
+\definecolor{numb}{RGB}{106, 109, 32}
+\definecolor{string}{rgb}{0.64,0.08,0.08}
+
+\lstdefinelanguage{json}{
+    numbers=left,
+    numberstyle=\small,
+    frame=single,
+    rulecolor=\color{black},
+    showspaces=false,
+    showtabs=false,
+    breaklines=true,
+    postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\color{gray}\hookrightarrow\space}},
+    %breakatwhitespace=true,
+    basicstyle=\ttfamily\small,
+    upquote=true,
+    morestring=[b]",
+    stringstyle=\color{string},
+    literate=
+     *{0}{{{\color{numb}0}}}{1}
+      {1}{{{\color{numb}1}}}{1}
+      {2}{{{\color{numb}2}}}{1}
+      {3}{{{\color{numb}3}}}{1}
+      {4}{{{\color{numb}4}}}{1}
+      {5}{{{\color{numb}5}}}{1}
+      {6}{{{\color{numb}6}}}{1}
+      {7}{{{\color{numb}7}}}{1}
+      {8}{{{\color{numb}8}}}{1}
+      {9}{{{\color{numb}9}}}{1}
+      {\{}{{{\color{delim}{\{}}}}{1}
+      {\}}{{{\color{delim}{\}}}}}{1}
+      {[}{{{\color{delim}{[}}}}{1}
+      {]}{{{\color{delim}{]}}}}{1},
+}
+
+\lstset{
+   language=json,
+   frame=single,
+   extendedchars=true,
+   basicstyle=\footnotesize\ttfamily,
+   showstringspaces=false,
+   showspaces=false,
+   tabsize=2,
+   breaklines=true,
+   showtabs=false
+}
 
 \begin{document}
 
@@ -25,6 +88,11 @@
 \chapter{Introduction}
 
 \chapter{Database}
+
+\chapter{Error pages}
+\section{Error 418 Teapot}
+\textbf{route: \color{redText} /teapot} \\
+This error shows up when the HTCPCP requests returns an error.
 
 \chapter{Commands}
 \section{Admin}
@@ -42,7 +110,17 @@ Add new company to system. \\ \\
 \textbf{user: } user name for first user \\
 \textbf{pass: } password for first user \\
 \textbf{key: } admin key \\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "myCompany",
+        "email": "mycompanygmail.com",
+        "user": "admin",
+        "pass": "1qazXSW@",
+        "key": "<PASTEadminKEYhere>"
+    }
+\end{lstlisting}
 
 \section{SIN}
 \textbf{SIN} (\textbf{S}ecurry \textbf{I}ndentyfication \textbf{N}umber) - token to indentyfication user. It store user ip, user browser agent, user name and DB name.
@@ -59,7 +137,21 @@ Get SIN from server or when you have it extend it expire time. \\
 \textbf{pass: } user password\\
 \textbf{db: } admin key \\
 \textbf{\color{redText} Return: }\\
-\textbf{sin: } your SIN 
+\textbf{sin: } your SIN \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "user": "admin",
+        "pass": "1qazXSW@",
+        "db": "myCompany"
+    }
+\end{lstlisting}
+\textbf{\color{redText} Example response: }
+\begin{lstlisting}
+    {
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/dropSIN}
 \textbf{\color{redText} Description} \\
@@ -67,7 +159,13 @@ Drop your SIN from server. It work like logout. \\
 \textbf{\color{redText} METHOD: } \textbf{DELETE} \\
 \textbf{\color{redText} Body parameters} \\
 \textbf{SIN: } SIN number\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \section{Tables}
 
@@ -78,17 +176,40 @@ Returns the names of all tables. \\
 \textbf{\color{redText} Body parameters} \\
 \textbf{SIN: } SIN number\\
 \textbf{\color{redText} Return: } \\
-\textbf{tables: } tables names separated by commas
+\textbf{tables: } array with tables names \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
+\textbf{\color{redText} Example response: }
+\begin{lstlisting}
+    {
+        "tables": [
+            "clients",
+            "employees",
+            "products"
+        ]
+    }
+\end{lstlisting}
 
 \subsection{/tables/add}
 \textbf{\color{redText} Description} \\
 Add new table. \\
-Name parameter cannot start with "log\_" or "system\_" \\
+Name parameter cannot start with "log\_" or "system\_" or "dic\_"\\
 \textbf{\color{redText} METHOD: } \textbf{PUT} \\
 \textbf{\color{redText} Body parameters} \\
 \textbf{name: } table name\\
 \textbf{SIN: } SIN number\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "suppliers",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/tables/<table>/addColumn}
 \textbf{\color{redText} Description} \\
@@ -114,7 +235,23 @@ Allowed types:
 \textbf{SIN: } SIN number\\
 \textbf{*reference: } name table of reference. Only for KEY \\
 \textbf{*} - optional \\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "price",
+        "type": "INT",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
+\begin{lstlisting}
+    {
+        "name": "client",
+        "type": "KEY",
+        "references": "clients",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/tables/<table>/insert}
 \textbf{\color{redText} Description} \\
@@ -123,9 +260,22 @@ Insert new row into table\\
 \textbf{\color{redText} URL parameters} \\
 \textbf{table: } table name\\
 \textbf{\color{redText} Body parameters} \\
+\textbf{data: } assoc array key is named like column\\
 \textbf{SIN: } SIN number\\
 The name of the column you are inserting the value into is name of parameter. You can insert more than one value, but only one row. Values you do not send will be set to NULL.\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "data":
+        {
+            "name": "Bob",
+            "lastName": "Smith",
+            "phone": "123987465"
+        },
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/tables/<table>/update/<columnID>}
 \textbf{\color{redText} Description} \\
@@ -138,7 +288,19 @@ Update row. \\
 \textbf{SIN: } SIN number\\
 \textbf{data: } assoc array key is named like column\\
 %\textbf{Name of cell you update is name of parameter}\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "data":
+        {
+            "name": "Bob",
+            "lastName": "Smith",
+            "phone": "987123456"
+        },
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/tables/<table>/delete/<columnID>}
 \textbf{\color{redText} Description} \\
@@ -149,7 +311,13 @@ Delete row. \\
 \textbf{columnID: } column ID\\
 \textbf{\color{redText} Body parameters} \\
 \textbf{SIN: } SIN number\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/tables/<table>/select/<columnID>}
 \textbf{\color{red} OUTDATED}\\
@@ -175,14 +343,65 @@ Select all row from table. \\
 \textbf{*page: } page number \\
 \textbf{*orderBy: } column name \\
 \textbf{*orderType: } ASC/DESC \\
-\textbf{*query: } array: key - column name; value - your parameter \\
 \textbf{*} - optional \\
 \textbf{\color{redText} Body parameters} \\
 \textbf{SIN: } SIN number\\
+\textbf{*query: } array: key - column name; value - your parameter \\
 \textbf{\color{redText} Return: } \\
 \textbf{Legend: } array contain name of all colums \\
 \textbf{Types: } array contain type of all colums. Each value is array with values order like columns at Legend parameter. \\
 \textbf{Next parameters name 'row' and it number (starts from 0). Each value is array with values order like columns at Legend parameter.}\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
+\begin{lstlisting}
+    {
+        "query":
+        {
+            "name": "Bob",
+            "lastName": "Smith"
+        },
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
+\textbf{\color{redText} Example response: }
+\begin{lstlisting}
+    {
+        "Legend": [
+            "name",
+            "lastName",
+            "phone"
+        ],
+        "Types": [
+            "TEXT",
+            "TEXT",
+            "INT"
+        ],
+        "row0":[
+            "Bob",
+            "Smith",
+            "123098822"
+        ],
+        "row1":[
+            "Anna",
+            "Smith",
+            "123788822"
+        ],
+        "row2":[
+            "Bob",
+            "Smith",
+            "111222333"
+        ],
+        "row4":[
+            "Tom",
+            "White",
+            "111222333"
+        ],
+    }
+\end{lstlisting}
 
 \subsection{/tables/<table>/alter}
 \textbf{\color{redText} Description} \\
@@ -195,7 +414,16 @@ Change name and type of column. \\
 \textbf{newName: } new name of column. If you would not change name send actual\\
 \textbf{newType: } new type of column. If you would not change type send actual\\
 \textbf{SIN: } SIN number\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "pirec",
+        "newName": "price",
+        "newType": "INT",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/tables/<table>/rename}
 \textbf{\color{redText} Description} \\
@@ -206,7 +434,14 @@ Rename table. \\
 \textbf{\color{redText} Body parameters} \\
 \textbf{name: } new name of table\\
 \textbf{SIN: } SIN number\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "products",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/tables/<table>/dropColumn}
 \textbf{\color{redText} Description} \\
@@ -217,7 +452,14 @@ Delete column. \\
 \textbf{\color{redText} Body parameters} \\
 \textbf{name: } name of column\\
 \textbf{SIN: } SIN number\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "phone",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/tables/<table>/dropTable}
 \textbf{\color{redText} Description} \\
@@ -227,7 +469,13 @@ Delete table. \\
 \textbf{table: } table name\\
 \textbf{\color{redText} Body parameters} \\
 \textbf{SIN: } SIN number\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 %\subsection{/tables/Dictionaries}
 \subsection{/tables/DictionariesAdd}
@@ -237,7 +485,14 @@ Add dictionares table. \\
 \textbf{\color{redText} Body parameters} \\
 \textbf{name: } table name\\
 \textbf{SIN: } SIN number\\
-\textbf{\color{redText} Return: } NULL
+\textbf{\color{redText} Return: } NULL\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "status",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \section{Search}
 \subsection{/search/<phrase>}
@@ -250,6 +505,61 @@ Search phrase in all tables. \\
 \textbf{SIN: } SIN number\\
 \textbf{\color{redText} Return: } \\
 Returning array named as table contaning data like /tables/<table>/select/all
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
+\textbf{\color{redText} Example response: }
+\begin{lstlisting}
+    {
+        "clients":{
+            "Legend": [
+                "name",
+                "lastName",
+                "phone"
+            ],
+            "Types": [
+                "TEXT",
+                "TEXT",
+                "INT"
+            ],
+            "row0":[
+                "Bob",
+                "Smith",
+                "123098822"
+            ],
+            "row2":[
+                "Bob",
+                "Smith",
+                "111222333"
+            ]
+        },
+        "suppliers":{
+            "Legend": [
+                "name",
+                "lastName",
+                "phone",
+                "company",
+                "email"
+            ],
+            "Types": [
+                "TEXT",
+                "TEXT",
+                "INT"
+            ],
+            "row0":[
+                "Bob",
+                "Smith",
+                "123098822",
+                "superFactory",
+                "contact@superFactory.com"
+            ]
+        },
+    }
+\end{lstlisting}
+
 
 \section{Client}
 Commands for managing client account
@@ -261,6 +571,13 @@ Changing name for your. \textbf{After executing this command you will be logged 
 \textbf{name: } new name for your account\\
 \textbf{SIN: } SIN number\\
 \textbf{\color{redText} Return: } NULL\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "bob",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \subsection{/client/changePass}
 Changing password for your. \textbf{After executing this command you will be logged out!} \\
@@ -269,25 +586,71 @@ Changing password for your. \textbf{After executing this command you will be log
 \textbf{pass: } new password for your account\\
 \textbf{SIN: } SIN number\\
 \textbf{\color{redText} Return: } NULL\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "pass": "@WSXzaq1",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
 \section{Sheet}
 \subsection{/sheet/<sheet>/update}
+Update cell in sheet.\\
 \textbf{\color{redText} METHOD: } \textbf{POST} \\
 \textbf{\color{redText} URL parameters} \\
-\textbf{sheet: } sheet number\\
+\textbf{sheet: } sheet name\\
 \textbf{\color{redText} Body parameters} \\
 \textbf{coord: } coordinate of cell\\
 \textbf{value: } cell value\\
 \textbf{SIN: } SIN number\\
 \textbf{\color{redText} Return: } NULL\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "coord": "A2",
+        "value": "=SUM(`products`.`price`)";
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
 
-\subsection{/sheet/<int>/update}
+\subsection{/sheet/<sheet>/get}
+Get sheet with resolved DB functions.\\
 \textbf{\color{redText} METHOD: } \textbf{POST} \\
 \textbf{\color{redText} URL parameters} \\
-\textbf{sheet: } sheet number\\
+\textbf{sheet: } sheet name\\
 \textbf{\color{redText} Body parameters} \\
 \textbf{SIN: } SIN number\\
 \textbf{\color{redText} Return: } \\
 \textbf{data: } array contain calculated values from DB\\
 \textbf{sheet: } array contain all cells\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
+
+\begin{lstlisting}
+    {
+        "data": {
+            "SUM(`products`.`price`)": 1353.5,
+            "SUM_IF(`products`.`price`,<100)": 630.4,
+            "COUNT(`products`)": 50.0,
+            "AVG(`products`.`price`)": 27.07,
+            "MAX(`products`.`price`)": 310.0,
+            "MIN(`products`.`price`)": 5.0,
+            "COUNT_IF(`products`.`price`,>300)": 1.0
+        },
+        "sheet": {
+            "A1": "=SUM(`products`.`price`)",
+            "B1": "=SUM_IF(`products`.`price`,<100)/AVG(`products`.`price`)",
+            "C2": "17",
+            "C1": "=CELI(MAX(`products`.`price`)/2) + B1",
+            "B5": "=MAX(`products`.`price`)/MIN(`products`.`price`)",
+            "D1": "=MIN(`products`.`price`)",
+            "A2": "=COUNT_IF(`products`.`price`,>300)"
+        }
+    }
+\end{lstlisting}
 \end{document}

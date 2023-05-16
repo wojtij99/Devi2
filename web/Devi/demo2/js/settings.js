@@ -28,13 +28,14 @@ function getTables()
 	.then((data) => {
         var result = "<table><tr><th>Nazwa</th><th>Opcje</th></tr>";
         if(data['tables'] != "")
-            data['tables'].split(",").forEach(element => {
+            for (var i in data['tables']){
+                var element = data['tables'][i];
                 if(element[element.length - 1] == " ")
                     element = element.substring(0, element.length - 1);
 
                 result += "<tr><td><a href='?page=table&table=" + element + "'><input type='text' value='" + element + "' id='t_" + element + "'></a></td>";
                 result += "<td><button onclick=\"renameTable('" + element + "')\">RENAME</button><button onclick=\"dropTable('" + element + "')\">DROP</button></td></tr>";
-            });
+            }
 
         result += "<tr><td><input type='text' id='addTable'></td><td><button onclick=\"addTable()\">ADD</button></td></tr>";
 

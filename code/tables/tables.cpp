@@ -33,7 +33,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         MYSQL_RES* sql_response;
         MYSQL_ROW sql_row;
-        std::string response = "";
+        //std::string response = "";
+        crow::json::wvalue result;
+        std::vector<std::string> tables;
 
         mysql_query(&sql, "SHOW TABLES;");
         sql_response = mysql_store_result(&sql);
@@ -42,14 +44,13 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         {
             std::string temp = sql_row[0];
             if (!isSystemTable(temp))
-                response += temp + ",";
+                tables.push_back(temp);
         }
 
-        if(response.length() > 1)
-            response[response.length() - 1] = ' ';
+        result["tables"] = tables;
 
         mysql_close(&sql);
-        return crow::response(crow::OK, "{\"tables\": \"" + response +"\"}");
+        return crow::response(crow::OK, result);
     });
 
     CROW_ROUTE(app, "/tables/add")
@@ -254,12 +255,14 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
 
         std::string sin;
+        crow::json::rvalue data;
         table = urlDecode(table);
         if(table.find('`') != std::string::npos) return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Invalid character (`) in table\"}");
 
         try
         {
             sin     = parseStr(body["sin"].s());
+            data    = body["data"];
         }
         catch(const std::runtime_error& e)
         {
@@ -289,11 +292,11 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
             i++;
         }
 
-        for(auto b : body)
+        for(auto b : data)
         {
-            if(b.key() == "sin" || b.key() == "ID") continue;
+            if(b.key() == "ID") continue;
             if(values.find(b.key()) == values.end())
-                return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+                return crow::response(crow::BAD_REQUEST, "{\"response\":\"Column `" + (std::string)b.key() + "` does not exist in this table \"}");
             values[b.key()] = std::pair<short, std::string>(values[b.key()].first,b.s());
         }
 

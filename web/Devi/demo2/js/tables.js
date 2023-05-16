@@ -7,13 +7,15 @@ function getTables()
 
     postData('POST', urlRoot + '/tables', toSend)
 	.then((data) => {
-		data['tables'].split(",").forEach(element => {
+        for (var i in data['tables'])
+		{
+            let element = data['tables'][i];
             document.getElementById("tables").innerHTML = "<a href='?table=" + element + "'><div id='navElement'>" + element + "</div></a>" + document.getElementById("tables").innerHTML;
-        });
+        }
 	})
     .catch((error) => {
         console.log(error);
-       logoutScript();
+       //logoutScript();
     });
 }
 
@@ -152,16 +154,17 @@ function insertData()
 
     var toSend = 
 	{
-		sin:   getCookie("sin")
+		sin:   getCookie("sin"),
+        data: {}
 	};
 
     for (let i = 1; document.getElementById("L" + i) != null; i++) 
     {
         var name = document.getElementById("L" + i).innerHTML;
         if(document.getElementById("insert_" + name).type != "checkbox")
-            toSend[name] = document.getElementById("insert_" + name).value;
+            toSend['data'][name] = document.getElementById("insert_" + name).value;
         else 
-            toSend[name] = document.getElementById("insert_" + name).checked ? "1" : "0";
+            toSend['data'][name] = document.getElementById("insert_" + name).checked ? "1" : "0";
     }
     console.log(toSend);
 
