@@ -595,6 +595,31 @@ Changing password for your. \textbf{After executing this command you will be log
 \end{lstlisting}
 
 \section{Sheet}
+\subsection{/sheets}
+\textbf{\color{redText} Description} \\
+Returns the names of all sheets. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } \\
+\textbf{tables: } array with sheets names \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
+\textbf{\color{redText} Example response: }
+\begin{lstlisting}
+    {
+        "sheets": [
+            "clients",
+            "employees",
+            "products"
+        ]
+    }
+\end{lstlisting}
+
 \subsection{/sheet/<sheet>/update}
 Update cell in sheet.\\
 \textbf{\color{redText} METHOD: } \textbf{POST} \\

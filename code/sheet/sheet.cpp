@@ -79,6 +79,51 @@ float aggregateFun(std::string _method, std::vector<std::string> _args, std::str
 
 void devi::Sheet(crow::App<crow::CORSHandler>& app) 
 {
+    CROW_ROUTE(app, "/sheets")
+    .methods(crow::HTTPMethod::POST)
+    ([&](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if(!body) 
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+
+        std::string sin;
+
+        try
+        {
+            sin     = parseStr(body["sin"].s());
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+        }
+
+        if(!checkSIN(sin, req))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
+        //std::string response = "";
+        crow::json::wvalue result;
+        std::vector<std::string> tables;
+
+        mysql_query(&sql, "SELECT * FROM `system_sheets`;");
+        sql_response = mysql_store_result(&sql);
+
+        while ((sql_row = mysql_fetch_row(sql_response)) != NULL)
+        {
+            std::string temp = sql_row[1];
+            if (!isSystemTable(temp))
+                tables.push_back(temp);
+        }
+
+        result["sheets"] = tables;
+
+        mysql_close(&sql);
+        return crow::response(crow::OK, result);
+    });
     CROW_ROUTE(app, "/sheet/<string>/update")
     .methods(crow::HTTPMethod::POST)
     ([&](const crow::request& req, std::string _sheet){
