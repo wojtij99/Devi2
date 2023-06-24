@@ -12,7 +12,6 @@
 #include "tools/tools.hpp"
 #include "search/search.hpp"
 #include "sheet/sheet.hpp"
-
 #include <boost/format.hpp>
 
 int main()

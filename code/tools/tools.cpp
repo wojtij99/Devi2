@@ -43,7 +43,6 @@ std::vector<std::string> devi::split(std::string _str, std::string _separator)
     while((actual = _str.find(_separator)) != std::string::npos)
     {
         result.emplace_back(_str.substr(0, actual));
-        std::cout << ":" << _str << std::endl;
         _str = _str.substr(actual + 1);
     }
     result.emplace_back(_str);
@@ -80,6 +79,19 @@ std::string devi::serialize(std::string _str, char _c)
         if(c == _c) result += '\\';
         result += c;
     }
+
+    return result;
+}
+
+std::vector<std::string> devi::getJSONList(crow::json::rvalue json)
+{
+    if (json.t() != crow::json::type::Object && json.t() != crow::json::type::List)
+        throw std::runtime_error("value is not a container");
+
+    std::vector<std::string> result;
+
+    for(auto j : json)
+        result.emplace_back(j.s());
 
     return result;
 }

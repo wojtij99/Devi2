@@ -124,6 +124,42 @@ void devi::Sheet(crow::App<crow::CORSHandler>& app)
         mysql_close(&sql);
         return crow::response(crow::OK, result);
     });
+
+    CROW_ROUTE(app, "/sheet/<string>/rename")
+    .methods(crow::HTTPMethod::POST)
+    ([&](const crow::request& req, std::string _oldName){
+        auto body = crow::json::load(req.body);
+        if(!body) 
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+
+        std::string sin, newName;
+
+        try
+        {
+            newName = parseStr(body["name"].s());
+            sin     = parseStr(body["sin"].s());
+        }
+        catch(const std::runtime_error& e)
+        {
+            return crow::response(crow::BAD_REQUEST, "{\"response\":\"Invalid body\"}");
+        }
+
+        if(!checkSIN(sin, req))
+            return crow::response(crow::UNAUTHORIZED, "{\"response\":\"Wrong SIN\"}");
+
+        MYSQL sql;
+        if(!devi::sql_start(&sql, "db_" + SINs[sin].db)) return crow::response(crow::SERVICE_UNAVAILABLE, "{\"response\":\"Can't connect to DB\"}");
+
+        MYSQL_RES* sql_response;
+        MYSQL_ROW sql_row;
+        
+        if(!exec_NOquery(&sql, {"UPDATE `system_sheets` SET `name`='", newName,"' WHERE `name` = '", _oldName,"';"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
+        mysql_close(&sql);
+        return crow::response(crow::OK);
+    });
+
     CROW_ROUTE(app, "/sheet/<string>/update")
     .methods(crow::HTTPMethod::POST)
     ([&](const crow::request& req, std::string _sheet){

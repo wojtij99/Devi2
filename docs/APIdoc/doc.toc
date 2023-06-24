@@ -1,0 +1,47 @@
+\babel@toc {english}{}\relax 
+\contentsline {chapter}{\numberline {1}Introduction}{3}{chapter.1}%
+\contentsline {chapter}{\numberline {2}Database}{4}{chapter.2}%
+\contentsline {chapter}{\numberline {3}Error pages}{5}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Error 418 Teapot}{5}{section.3.1}%
+\contentsline {chapter}{\numberline {4}DEVI Queries}{6}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Description}{6}{section.4.1}%
+\contentsline {chapter}{\numberline {5}Sheets Module}{7}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Description}{7}{section.5.1}%
+\contentsline {chapter}{\numberline {6}Pages Module}{8}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Description}{8}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Table}{8}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}table}{8}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}extendedTable}{8}{subsection.6.2.2}%
+\contentsline {section}{\numberline {6.3}Forms}{9}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Views}{9}{section.6.4}%
+\contentsline {chapter}{\numberline {7}Commands}{10}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Admin}{10}{section.7.1}%
+\contentsline {subsection}{\numberline {7.1.1}/admin/addNewCompany}{10}{subsection.7.1.1}%
+\contentsline {section}{\numberline {7.2}SIN}{11}{section.7.2}%
+\contentsline {subsection}{\numberline {7.2.1}/getSIN}{11}{subsection.7.2.1}%
+\contentsline {subsection}{\numberline {7.2.2}/dropSIN}{11}{subsection.7.2.2}%
+\contentsline {section}{\numberline {7.3}Tables}{12}{section.7.3}%
+\contentsline {subsection}{\numberline {7.3.1}/tables}{12}{subsection.7.3.1}%
+\contentsline {subsection}{\numberline {7.3.2}/tables/add}{12}{subsection.7.3.2}%
+\contentsline {subsection}{\numberline {7.3.3}/tables/<table>/addColumn}{13}{subsection.7.3.3}%
+\contentsline {subsection}{\numberline {7.3.4}/tables/<table>/insert}{14}{subsection.7.3.4}%
+\contentsline {subsection}{\numberline {7.3.5}/tables/<table>/update/<columnID>}{14}{subsection.7.3.5}%
+\contentsline {subsection}{\numberline {7.3.6}/tables/<table>/delete/<columnID>}{15}{subsection.7.3.6}%
+\contentsline {subsection}{\numberline {7.3.7}/tables/<table>/select/<columnID>}{15}{subsection.7.3.7}%
+\contentsline {subsection}{\numberline {7.3.8}/tables/<table>/select/all}{16}{subsection.7.3.8}%
+\contentsline {subsection}{\numberline {7.3.9}/tables/<table>/alter}{17}{subsection.7.3.9}%
+\contentsline {subsection}{\numberline {7.3.10}/tables/<table>/rename}{18}{subsection.7.3.10}%
+\contentsline {subsection}{\numberline {7.3.11}/tables/<table>/dropColumn}{18}{subsection.7.3.11}%
+\contentsline {subsection}{\numberline {7.3.12}/tables/<table>/dropTable}{19}{subsection.7.3.12}%
+\contentsline {subsection}{\numberline {7.3.13}/tables/DictionariesAdd}{19}{subsection.7.3.13}%
+\contentsline {section}{\numberline {7.4}Search}{19}{section.7.4}%
+\contentsline {subsection}{\numberline {7.4.1}/search/<phrase>}{19}{subsection.7.4.1}%
+\contentsline {section}{\numberline {7.5}Client}{21}{section.7.5}%
+\contentsline {subsection}{\numberline {7.5.1}/client/addAccount}{21}{subsection.7.5.1}%
+\contentsline {subsection}{\numberline {7.5.2}/client/changeName}{22}{subsection.7.5.2}%
+\contentsline {subsection}{\numberline {7.5.3}/client/changePass}{22}{subsection.7.5.3}%
+\contentsline {section}{\numberline {7.6}Sheet}{23}{section.7.6}%
+\contentsline {subsection}{\numberline {7.6.1}/sheets}{23}{subsection.7.6.1}%
+\contentsline {subsection}{\numberline {7.6.2}/sheets/<sheet>/rename}{23}{subsection.7.6.2}%
+\contentsline {subsection}{\numberline {7.6.3}/sheet/<sheet>/update}{24}{subsection.7.6.3}%
+\contentsline {subsection}{\numberline {7.6.4}/sheet/<sheet>/get}{24}{subsection.7.6.4}%

@@ -1,6 +1,6 @@
 #include "sin.hpp"
 //#include <boost/format.hpp>
-#include <mysql/mysql.h>
+//#include <mysql/mysql.h>
 #include "../tools/sql.hpp"
 #include "../tools/sha1.hpp"
 
@@ -91,7 +91,7 @@ void devi::SIN(crow::App<crow::CORSHandler>& app)
         do sin = generateSIN();
         while (SINs.find(sin) != SINs.end());
         
-        sin_t sin_struct = {host, user_agent, user, db, time(NULL), time(NULL) + EXPIRE_TIME};
+        sin_t sin_struct = {std::stoi(sql_row[0]), host, user_agent, user, db, time(NULL), time(NULL) + EXPIRE_TIME};
 
         SINs[sin] = sin_struct;
         return crow::response(crow::OK, "{\"sin\": \"" + sin +"\"}");

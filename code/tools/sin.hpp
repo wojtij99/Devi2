@@ -9,12 +9,13 @@ namespace devi
 {
     struct sin_t //Securyty Indentified Number
     {
+        int         id;
         std::string ip;
         std::string user_agent;
         std::string user;
         std::string db;
-        time_t  creationDT;
-        time_t  expiredate;
+        time_t      creationDT;
+        time_t      expiredate;
     };
 
     void SIN(crow::App<crow::CORSHandler>& app);

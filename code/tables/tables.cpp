@@ -4,6 +4,7 @@
 #include "../tools/sin.hpp"
 #include "../tools/tools.hpp"
 #include <map>
+#include "../tools/permissions.hpp"
 
 void devi::Tables(crow::App<crow::CORSHandler>& app)
 {
@@ -44,7 +45,15 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         {
             std::string temp = sql_row[0];
             if (!isSystemTable(temp))
-                tables.push_back(temp);
+                try
+                {
+                    if(havePermissions(sin, permStruct_e::Table, temp, permType_e::READ))
+                        tables.push_back(temp);
+                }
+                catch(const std::exception& e)
+                {
+                    std::cerr << e.what() << '\n';
+                }
         }
 
         result["tables"] = tables;
@@ -102,6 +111,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
 
         if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", name, "_log_delete` AFTER DELETE ON `", name, "` FOR EACH ROW INSERT INTO `log_", name, "` VALUES(NULL, \"DELETE\", NOW(), OLD.ID); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
+        if(!exec_NOquery(&sql, {"INSERT INTO `system_tables` VALUES (NULL,'" + name + "')"}, true)) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't insert data\"}");
 
         mysql_query(&sql, "COMMIT;");
         mysql_close(&sql);
@@ -871,6 +883,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         if(!exec_NOquery(&sql, {"CREATE TRIGGER `", SINs[sin].db,"_", name, "_log_delete` AFTER DELETE ON `", name, "` FOR EACH ROW ", stm_delete, "); "}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table6\"}");
 
+        if(!exec_NOquery(&sql, {"UPDATE `system_tables` SET `name`='", name,"' WHERE `name` = '", table,"';"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
+
         mysql_close(&sql);
         return crow::response(crow::OK);
     });
@@ -1024,6 +1039,9 @@ void devi::Tables(crow::App<crow::CORSHandler>& app)
         
         if(!exec_NOquery(&sql, {"DROP TRIGGER IF EXISTS `", SINs[sin].db,"_", table, "_log_delete`;"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table3\"}");
+        
+        if(!exec_NOquery(&sql, {"DELETE FROM `system_pages` WHERE `name` = ", table ,";"})) 
+            return crow::response(crow::CONFLICT, "{\"response\":\"Can't create table\"}");
 
         mysql_close(&sql);
         return crow::response(crow::OK);

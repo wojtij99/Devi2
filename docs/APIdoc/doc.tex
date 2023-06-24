@@ -7,6 +7,7 @@
 \usepackage{tabularx}
 \usepackage{listings}
 \usepackage{verbatim}
+\usepackage{hyperref}
 
 \definecolor{chapter_c}{rgb}{0.5, 0.0, 0.0}
 \definecolor{section_c}{rgb}{0.64, 0.0, 0.0}
@@ -19,6 +20,14 @@
 
 \definecolor{keycolor}{HTML}{569CD6}
 \definecolor{valuecolor}{HTML}{FF0000}
+
+\hypersetup{
+    colorlinks,
+    citecolor=blue,
+    filecolor=blue,
+    linkcolor=blue,
+    urlcolor=blue
+}
 
 \begin{comment}
 \lstdefinelanguage{js}{
@@ -85,6 +94,8 @@
 
 \maketitle
 
+\tableofcontents
+
 \chapter{Introduction}
 
 \chapter{Database}
@@ -94,6 +105,69 @@
 \textbf{route: \color{redText} /teapot} \\
 This error shows up when the HTCPCP requests returns an error.
 
+\chapter{DEVI Queries}
+\section{Description}
+
+\chapter{Sheets Module}
+\section{Description}
+
+\chapter{Pages Module}
+\section{Description}
+Graphical representation of data or forms to insert.
+
+\section{Table}
+\subsection{table}
+\textbf{\color{redText} Description} \\
+Table with limited amount of columns.\\
+{\color{redText} This component cannot be combined with any other!}\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{columns:} column to show, If you put '*' show all columns\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "columns": [
+            "name",
+            "price",
+            "category" 
+            ]
+    }
+\end{lstlisting}
+\subsection{extendedTable}
+\textbf{\color{redText} Description} \\
+Table with limited amount of columns and after click row it's redirects to another page. \\
+{\color{redText} This component cannot be combined with any other!}\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{columns:} column to show, If you put '*' show all columns\\
+\textbf{onRowClick:} target page\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "columns": [
+            "name",
+            "lastName",
+            "addres"
+            ],
+        "onRowClick": "clientView"
+    }
+\end{lstlisting}
+\section{Forms}
+% \subsection{textInput}
+% \textbf{\color{redText} Description} \\
+% Text input. \\
+% \textbf{\color{redText} Body parameters} \\
+% \textbf{column:} \\
+% \textbf{\color{redText} Example body: }
+% \begin{lstlisting}
+%     {
+%         "columns": [
+%             "name",
+%             "lastName",
+%             "addres"
+%             ],
+%         "onRowClick": "clientView"
+%     }
+% \end{lstlisting}
+\section{Views}
 \chapter{Commands}
 \section{Admin}
 Commands to administrate system. \textbf{NOT for user!}
@@ -190,7 +264,7 @@ Returns the names of all tables. \\
             "clients",
             "employees",
             "products"
-        ]
+            ]
     }
 \end{lstlisting}
 
@@ -563,6 +637,51 @@ Returning array named as table contaning data like /tables/<table>/select/all
 
 \section{Client}
 Commands for managing client account
+
+\subsection{/client/addAccount}
+\textbf{\color{redText} Description} \\
+Add new account. \textbf{It work only when you have 'ACCOUNT' privilege}\\
+Available privileges:
+\begin{itemize}
+    \item READ    - you can read data (G,T,S,P)
+    \item UPADTE  - you can update data (G,T,S)
+    \item DELETE  - you can delete data (G,T)
+    \item MODIFY  - you can modify structure of table (when it is global privilege you can also create table) (G,P)
+    \item ACCOUNT - you can create and manage accounts (only in global section) (G)
+    \item NONE    - you do not have any privilege (G,T,S,P)
+    \item ALL     - you do not have all privilege (G,T,S,P)
+\end{itemize}
+\textbf{\color{redText} METHOD: } \textbf{PUT} \\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } name for new account\\
+\textbf{pass: } password for new account\\
+\textbf{permissions: } permissions for new account\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL\\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "bob",
+        "pass": "@WSXzaq1",
+        "permissions": {
+            "global": ["READ"],
+            "tables": {
+                "clients": ["ALL"],
+                "suppliers": ["READ", "UPADTE", "DELETE"],
+                "employees": ["READ"],
+                "bosses": ["NONE"]
+            },
+            "sheets":{
+                "sheet1": ["READ", "UPADTE"]
+            },
+            "pages":{
+                "addClient": ["READ"]
+            }
+        },
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
+
 \subsection{/client/changeName}
 \textbf{\color{redText} Description} \\
 Changing name for your. \textbf{After executing this command you will be logged out!} \\
@@ -619,6 +738,25 @@ Returns the names of all sheets. \\
         ]
     }
 \end{lstlisting}
+
+\subsection{/sheets/<sheet>/rename}
+\textbf{\color{redText} Description} \\
+Rename sheet. \\
+\textbf{\color{redText} METHOD: } \textbf{POST} \\
+\textbf{\color{redText} URL parameters} \\
+\textbf{sheet: } sheet name\\
+\textbf{\color{redText} Body parameters} \\
+\textbf{name: } newName\\
+\textbf{SIN: } SIN number\\
+\textbf{\color{redText} Return: } NULL \\
+\textbf{\color{redText} Example body: }
+\begin{lstlisting}
+    {
+        "name": "newName",
+        "sin": "<yourSIN>"
+    }
+\end{lstlisting}
+\textbf{\color{redText} Example response: }
 
 \subsection{/sheet/<sheet>/update}
 Update cell in sheet.\\

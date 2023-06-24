@@ -11,4 +11,5 @@ namespace devi
     std::string toUpper(std::string _str);
     std::string toLower(std::string _str);
     std::string serialize(std::string _str, char _c);
+    std::vector<std::string> getJSONList(crow::json::rvalue json);
 }
