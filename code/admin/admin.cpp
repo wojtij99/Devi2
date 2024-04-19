@@ -77,13 +77,13 @@ void devi::Admin(crow::App<crow::CORSHandler> &app)
         if(!exec_NOquery(&sql, {"INSERT INTO system_users VALUES(NULL, '", user, "', '", hashPass, "', '{\"global\": [\"ALL\"]}');"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't insert user to DB\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TABLE `system_sheets` (`ID` INT NOT NULL AUTO_INCREMENT , `name` TEXT NOT NULL , `JSON` TEXT NOT NULL , PRIMARY KEY (`ID`));"}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TABLE `system_sheets` (`ID` INT NOT NULL AUTO_INCREMENT , `name` TEXT NOT NULL, `JSON` TEXT NOT NULL , PRIMARY KEY (`ID`));"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't init DB\"}");
 
-        if(!exec_NOquery(&sql, {"CREATE TABLE `system_pages` (`ID` INT NOT NULL AUTO_INCREMENT , `name` TEXT NOT NULL , `JSON` TEXT NOT NULL , PRIMARY KEY (`ID`));"}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TABLE `system_pages` (`ID` INT NOT NULL AUTO_INCREMENT , `name` TEXT NOT NULL, `JSON` TEXT NOT NULL , PRIMARY KEY (`ID`));"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't init DB\"}");
         
-        if(!exec_NOquery(&sql, {"CREATE TABLE `system_tables` (`ID` INT NOT NULL AUTO_INCREMENT , `name` TEXT NOT NULL, PRIMARY KEY (`ID`));"}, true)) 
+        if(!exec_NOquery(&sql, {"CREATE TABLE `system_tables` (`ID` INT NOT NULL AUTO_INCREMENT , `name` TEXT NOT NULL,  `JSON` TEXT NOT NULL, PRIMARY KEY (`ID`));"}, true)) 
             return crow::response(crow::CONFLICT, "{\"response\":\"Can't init DB\"}");
         
         mysql_query(&sql, "COMMIT;");

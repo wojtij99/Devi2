@@ -30,7 +30,7 @@ int main()
     auto& cors = app.get_middleware<crow::CORSHandler>();
 
     cors
-      .global()
+        .global()
         //.headers("access-control-allow-origin", "*")
         .methods("POST"_method, "GET"_method, "DELETE"_method, "PUT"_method)
         .origin("*");

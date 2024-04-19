@@ -1,6 +1,4 @@
 #include "sin.hpp"
-//#include <boost/format.hpp>
-//#include <mysql/mysql.h>
 #include "../tools/sql.hpp"
 #include "../tools/sha1.hpp"
 
